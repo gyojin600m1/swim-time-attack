@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>超・平泳ぎ タイムアタック</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #020713;
+    --panel: rgba(5, 17, 33, .94);
+    --panel-2: rgba(8, 29, 52, .88);
+    --line: rgba(92, 206, 255, .27);
+    --cyan: #19e6ff;
+    --blue: #4ba7ff;
+    --green: #5df2a7;
+    --warn: #ffd166;
+    --bad: #ff5b7a;
+    --white: #f4fbff;
+    --muted: #91a9bd;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body {
+    width: 100%;
+    min-height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--white);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Segoe UI", sans-serif;
+    touch-action: none;
+    user-select: none;
+  }
+
+  body {
+    position: fixed;
+    inset: 0;
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+
+  #game {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  .top-hud {
+    position: fixed;
+    top: max(10px, env(safe-area-inset-top));
+    left: 10px;
+    right: 10px;
+    z-index: 4;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .hud-card,
+  .clock-card,
+  .pc-help,
+  .feedback > div {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(3, 10, 21, .72);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 14px 38px rgba(0, 0, 0, .28);
+  }
+
+  .hud-card {
+    padding: 9px 10px;
+    min-width: 0;
+  }
+
+  .race-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    color: #c6d9e8;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+
+  .bar {
+    position: relative;
+    height: 8px;
+    margin-top: 7px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(115, 151, 184, .18);
+  }
+
+  .bar > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--cyan), var(--blue));
+    box-shadow: 0 0 16px rgba(25, 230, 255, .45);
+  }
+
+  .mini-bars {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-top: 8px;
+  }
+
+  .mini-label {
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 900;
+  }
+
+  .mini .bar {
+    height: 6px;
+    margin-top: 4px;
+  }
+
+  #staminaBar {
+    background: linear-gradient(90deg, var(--green), var(--warn));
+  }
+
+  #oxygenBar {
+    background: linear-gradient(90deg, var(--cyan), #b7f8ff);
+  }
+
+  .clock-card {
+    min-width: 88px;
+    padding: 9px 10px;
+    text-align: right;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .clock-label {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 900;
+  }
+
+  .clock-time {
+    margin-top: 2px;
+    color: var(--cyan);
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .feedback {
+    position: fixed;
+    top: max(108px, calc(env(safe-area-inset-top) + 92px));
+    left: 12px;
+    right: 12px;
+    z-index: 6;
+    min-height: 42px;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .feedback > div {
+    max-width: min(430px, 92vw);
+    padding: 10px 13px;
+    color: var(--cyan);
+    font-size: 15px;
+    font-weight: 900;
+    text-align: center;
+    transform: translateY(-8px);
+    opacity: 0;
+    transition: opacity .15s ease, transform .15s ease;
+  }
+
+  .feedback.show > div {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .pc-help {
+    position: fixed;
+    top: max(96px, calc(env(safe-area-inset-top) + 82px));
+    right: 10px;
+    z-index: 5;
+    width: 210px;
+    padding: 10px;
+    color: #d8edf8;
+    font-size: 12px;
+    line-height: 1.55;
+    pointer-events: none;
+  }
+
+  .pc-help b {
+    color: var(--cyan);
+  }
+
+  kbd,
+  .kbd {
+    display: inline-flex;
+    min-width: 24px;
+    height: 22px;
+    align-items: center;
+    justify-content: center;
+    margin: 0 2px;
+    border: 1px solid rgba(92, 206, 255, .38);
+    border-radius: 5px;
+    background: rgba(10, 31, 55, .92);
+    color: var(--white);
+    font: 900 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .22);
+  }
+
+  .controls {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    z-index: 7;
+    display: grid;
+    grid-template-columns: 1fr 1.05fr 1fr;
+    gap: 8px;
+  }
+
+  .control-btn {
+    min-height: 78px;
+    border: 1px solid rgba(83, 178, 242, .42);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(10, 34, 62, .95), rgba(6, 20, 38, .97));
+    color: var(--white);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, .3);
+    font-weight: 900;
+    cursor: pointer;
+    touch-action: none;
+  }
+
+  .control-btn small {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .control-btn.action {
+    border-color: rgba(25, 230, 255, .72);
+    background: linear-gradient(180deg, rgba(25, 230, 255, .25), rgba(20, 78, 138, .94));
+  }
+
+  .control-btn.ready {
+    border-color: rgba(255, 209, 102, .72);
+    background: linear-gradient(180deg, rgba(255, 209, 102, .28), rgba(89, 61, 17, .85));
+  }
+
+  .control-btn.active {
+    border-color: rgba(25, 230, 255, 1);
+    box-shadow: 0 0 0 2px rgba(25, 230, 255, .18), 0 0 26px rgba(25, 230, 255, .3);
+    transform: translateY(1px);
+  }
+
+  .screen {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    background:
+      radial-gradient(circle at 50% 8%, rgba(25, 230, 255, .17), transparent 28%),
+      rgba(2, 6, 16, .96);
+    touch-action: pan-y;
+  }
+
+  .panel {
+    width: min(470px, 100%);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+    padding: 18px;
+    box-shadow: 0 22px 60px rgba(0, 0, 0, .38);
+  }
+
+  .brand {
+    color: var(--cyan);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0;
+  }
+
+  h1 {
+    margin-top: 6px;
+    font-size: 30px;
+    line-height: 1.1;
+    letter-spacing: 0;
+  }
+
+  .lead {
+    margin-top: 10px;
+    color: #b8c9da;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .form-grid,
+  .chips,
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .field,
+  .chip,
+  .result-item {
+    border: 1px solid rgba(92, 206, 255, .18);
+    border-radius: 8px;
+    background: var(--panel-2);
+    padding: 10px;
+  }
+
+  .field label,
+  .chip b,
+  .result-item span {
+    display: block;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .field input {
+    width: 100%;
+    min-height: 38px;
+    margin-top: 6px;
+    border: 1px solid rgba(92, 206, 255, .22);
+    border-radius: 8px;
+    background: rgba(3, 10, 21, .74);
+    color: var(--white);
+    padding: 0 10px;
+    user-select: text;
+  }
+
+  .distance-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .distance-toggle button {
+    min-height: 38px;
+    border: 1px solid rgba(92, 206, 255, .22);
+    border-radius: 8px;
+    background: rgba(3, 10, 21, .74);
+    color: #cfe7f7;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .distance-toggle button.selected {
+    border-color: rgba(25, 230, 255, .8);
+    background: rgba(25, 230, 255, .16);
+    color: var(--cyan);
+  }
+
+  .chip {
+    min-height: 70px;
+  }
+
+  .chip b {
+    color: var(--white);
+    font-size: 13px;
+  }
+
+  .chip span {
+    display: block;
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .primary,
+  .secondary {
+    width: 100%;
+    min-height: 52px;
+    border-radius: 999px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .primary {
+    margin-top: 16px;
+    border: 0;
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
+    color: #03101f;
+    font-size: 17px;
+    box-shadow: 0 0 24px rgba(25, 230, 255, .28);
+  }
+
+  .secondary {
+    margin-top: 10px;
+    border: 1px solid var(--line);
+    background: rgba(7, 18, 34, .82);
+    color: var(--white);
+    font-size: 15px;
+  }
+
+  .score {
+    margin: 12px 0 4px;
+    color: var(--cyan);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 42px;
+    font-weight: 900;
+    text-align: center;
+  }
+
+  .result-item b {
+    display: block;
+    margin-top: 4px;
+    color: var(--white);
+    font-size: 16px;
+  }
+
+  .coach,
+  .copy-box,
+  .ranking {
+    margin-top: 12px;
+    border-left: 3px solid var(--cyan);
+    background: rgba(25, 230, 255, .07);
+    padding: 10px 11px;
+    color: #d8edf8;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .copy-box textarea {
+    width: 100%;
+    min-height: 78px;
+    margin-top: 8px;
+    resize: vertical;
+    border: 1px solid rgba(92, 206, 255, .2);
+    border-radius: 8px;
+    background: rgba(3, 10, 21, .78);
+    color: #e9fbff;
+    padding: 8px;
+    user-select: text;
+    touch-action: auto;
+  }
+
+  .result-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .ranking ol {
+    margin: 6px 0 0 20px;
+  }
+
+  .ranking li {
+    margin-top: 3px;
+  }
+
+  @media (max-width: 560px) {
+    .pc-help {
+      display: none;
+    }
+
+    .top-hud {
+      grid-template-columns: 1fr 78px;
+    }
+
+    .clock-card {
+      min-width: 78px;
+      padding: 8px;
+    }
+
+    .clock-time {
+      font-size: 19px;
+    }
+  }
+
+  @media (max-width: 380px), (max-height: 680px) {
+    .panel {
+      padding: 14px;
+    }
+
+    h1 {
+      font-size: 26px;
+    }
+
+    .lead {
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .chips,
+    .form-grid,
+    .result-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .control-btn {
+      min-height: 66px;
+      font-size: 13px;
+    }
+
+    .control-btn small {
+      font-size: 10px;
+    }
+
+    .feedback {
+      top: 96px;
+    }
+  }
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="超・平泳ぎ タイムアタック レース画面"></canvas>
+
+<div id="topHud" class="top-hud hidden" aria-hidden="true">
+  <div class="hud-card">
+    <div class="race-row">
+      <span id="phaseText">READY</span>
+      <span id="distanceText">0.0 / 50m</span>
+    </div>
+    <div class="bar"><span id="progressBar"></span></div>
+    <div class="mini-bars">
+      <div class="mini">
+        <div class="mini-label"><span>STAMINA</span><span id="staminaText">100</span></div>
+        <div class="bar"><span id="staminaBar"></span></div>
+      </div>
+      <div class="mini">
+        <div class="mini-label"><span>OXYGEN</span><span id="oxygenText">100</span></div>
+        <div class="bar"><span id="oxygenBar"></span></div>
+      </div>
+    </div>
+  </div>
+  <div class="clock-card">
+    <div class="clock-label">TIME</div>
+    <div class="clock-time" id="clockText">0.00</div>
+  </div>
+</div>
+
+<div id="feedback" class="feedback" aria-live="polite"><div id="feedbackText"></div></div>
+
+<div id="pcHelp" class="pc-help hidden" aria-hidden="true">
+  <b>PC操作</b><br>
+  <kbd>F</kbd> + <kbd>J</kbd> 両手プル / 両手タッチ<br>
+  <kbd>Space</kbd> キック / 浮上<br>
+  壁前は必ず両手同時タッチ
+</div>
+
+<div id="controls" class="controls hidden" aria-label="レース操作">
+  <button id="leftBtn" class="control-btn" type="button">左ゾーン<small>同時タップ</small></button>
+  <button id="actionBtn" class="control-btn action" type="button">キック<small>Space / 中央</small></button>
+  <button id="rightBtn" class="control-btn" type="button">右ゾーン<small>同時タップ</small></button>
+</div>
+
+<section id="titleScreen" class="screen">
+  <div class="panel">
+    <div class="brand">BREASTSTROKE / BREAST / 平泳ぎ</div>
+    <h1>超・平泳ぎ<br>タイムアタック</h1>
+    <p class="lead">
+      両手プル、キック、グライドの順で大きく進む平泳ぎゲーム。
+      平泳ぎはターン・ゴールの両手同時タッチが重要です。
+    </p>
+    <div class="form-grid">
+      <div class="field">
+        <label for="playerName">選手名</label>
+        <input id="playerName" type="text" maxlength="16" autocomplete="name" placeholder="Guest">
+      </div>
+      <div class="field">
+        <label>距離</label>
+        <div class="distance-toggle" role="group" aria-label="距離選択">
+          <button id="dist50" class="selected" type="button">50m</button>
+          <button id="dist100" type="button">100m</button>
+        </div>
+      </div>
+    </div>
+    <div class="chips">
+      <div class="chip"><b>水上</b><span>両手プル → キック → 少し待つとグライド成功。</span></div>
+      <div class="chip"><b>潜水</b><span>ひとかき・ひとけり。15mまでに浮上。</span></div>
+      <div class="chip"><b>壁</b><span>ターンとゴールは必ず両手同時タッチ。</span></div>
+      <div class="chip"><b>操作</b><span>スマホは左右同時＋中央。PCは F+J と Space。</span></div>
+    </div>
+    <p id="bestPreview" class="lead">自己ベスト: -</p>
+    <button id="startBtn" class="primary" type="button">レース開始</button>
+  </div>
+</section>
+
+<section id="resultScreen" class="screen hidden">
+  <div class="panel">
+    <div class="brand" id="resultBrand">FINISH</div>
+    <h1 id="resultTitle">50m 平泳ぎ</h1>
+    <div id="resultTime" class="score">0.00s</div>
+    <div class="result-grid">
+      <div class="result-item"><span>プル</span><b id="resultPull">-</b></div>
+      <div class="result-item"><span>キック</span><b id="resultKick">-</b></div>
+      <div class="result-item"><span>グライド</span><b id="resultGlide">-</b></div>
+      <div class="result-item"><span>両手タッチ</span><b id="resultTouch">-</b></div>
+    </div>
+    <div id="coachText" class="coach"></div>
+    <div id="rankingBox" class="ranking"></div>
+    <div class="copy-box">
+      <b>コピー用結果テキスト</b>
+      <textarea id="copyText" readonly></textarea>
+    </div>
+    <div class="result-actions">
+      <button id="copyBtn" class="secondary" type="button">結果をコピー</button>
+      <button id="shareBtn" class="secondary" type="button">Xで共有</button>
+    </div>
+    <button id="restartBtn" class="primary" type="button">もう一度</button>
+  </div>
+</section>
+
+<script>
+(() => {
+  "use strict";
+
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  // iOS15以前のSafariには CanvasRenderingContext2D.roundRect が無くdrawで毎フレーム例外→描画停止する
+  if (!ctx.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+      const radius = Math.min(typeof r === "number" ? r : 0, w / 2, h / 2);
+      this.moveTo(x + radius, y);
+      this.arcTo(x + w, y, x + w, y + h, radius);
+      this.arcTo(x + w, y + h, x, y + h, radius);
+      this.arcTo(x, y + h, x, y, radius);
+      this.arcTo(x, y, x + w, y, radius);
+      this.closePath();
+      return this;
+    };
+  }
+  const titleScreen = document.getElementById("titleScreen");
+  const resultScreen = document.getElementById("resultScreen");
+  const topHud = document.getElementById("topHud");
+  const pcHelp = document.getElementById("pcHelp");
+  const controls = document.getElementById("controls");
+  const leftBtn = document.getElementById("leftBtn");
+  const rightBtn = document.getElementById("rightBtn");
+  const actionBtn = document.getElementById("actionBtn");
+  const feedback = document.getElementById("feedback");
+  const feedbackText = document.getElementById("feedbackText");
+  const phaseText = document.getElementById("phaseText");
+  const distanceText = document.getElementById("distanceText");
+  const progressBar = document.getElementById("progressBar");
+  const clockText = document.getElementById("clockText");
+  const staminaBar = document.getElementById("staminaBar");
+  const oxygenBar = document.getElementById("oxygenBar");
+  const staminaText = document.getElementById("staminaText");
+  const oxygenText = document.getElementById("oxygenText");
+  const playerName = document.getElementById("playerName");
+  const dist50 = document.getElementById("dist50");
+  const dist100 = document.getElementById("dist100");
+  const bestPreview = document.getElementById("bestPreview");
+  const copyText = document.getElementById("copyText");
+
+  const POOL_LENGTH = 25;
+  const SYNC_WINDOW = 185;
+  const GLIDE_MIN = 320;
+  const GLIDE_BEST = 520;
+  const GLIDE_MAX = 960;
+  const UNDERWATER_LIMIT = 15;
+  const STORAGE_KEY = "superBreaststrokeTimeAttack.v1";
+
+  const state = {
+    mode: "title",
+    selectedDistance: 50,
+    w: 0,
+    h: 0,
+    dpr: 1,
+    lastFrame: performance.now(),
+    feedbackUntil: 0,
+    lanes: [],
+    particles: [],
+    race: null,
+    audioContext: null,
+    timers: [],
+    resultText: ""
+  };
+
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+  const now = () => performance.now();
+  const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[ch]));
+
+  const safeLoad = () => {
+    try {
+      const raw = window.localStorage && window.localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { rankings: {} };
+    } catch (error) {
+      return { rankings: {} };
+    }
+  };
+
+  const safeSave = (data) => {
+    try {
+      if (window.localStorage) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      // Ranking is optional when storage is unavailable.
+    }
+  };
+
+  const getName = () => (playerName.value || "Guest").trim().slice(0, 16) || "Guest";
+
+  const getRankings = (distance) => {
+    const data = safeLoad();
+    const key = String(distance);
+    return Array.isArray(data.rankings && data.rankings[key]) ? data.rankings[key] : [];
+  };
+
+  const saveResult = (distance, name, time) => {
+    const data = safeLoad();
+    data.rankings = data.rankings || {};
+    const key = String(distance);
+    const list = Array.isArray(data.rankings[key]) ? data.rankings[key] : [];
+    list.push({ name, time, at: new Date().toISOString() });
+    list.sort((a, b) => a.time - b.time);
+    data.rankings[key] = list.slice(0, 10);
+    safeSave(data);
+    return data.rankings[key];
+  };
+
+  const refreshBestPreview = () => {
+    const best = getRankings(state.selectedDistance)[0];
+    bestPreview.textContent = best ? `自己ベスト: ${best.time.toFixed(2)}s / ${best.name}` : "自己ベスト: -";
+  };
+
+  const setDistance = (distance) => {
+    state.selectedDistance = distance;
+    dist50.classList.toggle("selected", distance === 50);
+    dist100.classList.toggle("selected", distance === 100);
+    refreshBestPreview();
+  };
+
+  dist50.addEventListener("click", () => setDistance(50));
+  dist100.addEventListener("click", () => setDistance(100));
+  refreshBestPreview();
+
+  const tone = (frequency, duration, type = "sine", volume = 0.06) => {
+    try {
+      const AudioCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtor) return;
+      if (!state.audioContext) state.audioContext = new AudioCtor();
+      const ac = state.audioContext;
+      if (ac.state === "suspended" && ac.resume) ac.resume().catch(() => {});
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = type;
+      osc.frequency.value = frequency;
+      gain.gain.setValueAtTime(volume, ac.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(ac.destination);
+      osc.start();
+      osc.stop(ac.currentTime + duration);
+    } catch (error) {
+      // Sound is optional on browsers that block AudioContext.
+    }
+  };
+
+  const vibrate = (pattern) => {
+    try {
+      if (navigator.vibrate) navigator.vibrate(pattern);
+    } catch (error) {
+      // Vibration is optional.
+    }
+  };
+
+  const speakMarks = () => {
+    try {
+      if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+      const utter = new SpeechSynthesisUtterance("Take your marks");
+      utter.lang = "en-US";
+      utter.rate = 0.88;
+      utter.pitch = 0.86;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+    } catch (error) {
+      // Voice cue is optional.
+    }
+  };
+
+  const shortWhistle = () => {
+    tone(1380, 0.07, "square", 0.08);
+    setTimeout(() => tone(1380, 0.07, "square", 0.08), 150);
+  };
+
+  const longWhistle = () => {
+    tone(900, 0.52, "sine", 0.075);
+  };
+
+  const startBeep = () => {
+    tone(1660, 0.16, "square", 0.09);
+    setTimeout(() => tone(1180, 0.09, "square", 0.06), 90);
+  };
+
+  const resize = () => {
+    const vv = window.visualViewport;
+    state.dpr = Math.min(2, window.devicePixelRatio || 1);
+    state.w = Math.floor(vv ? vv.width : window.innerWidth);
+    state.h = Math.floor(vv ? vv.height : window.innerHeight);
+    canvas.width = Math.floor(state.w * state.dpr);
+    canvas.height = Math.floor(state.h * state.dpr);
+    canvas.style.width = `${state.w}px`;
+    canvas.style.height = `${state.h}px`;
+    ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+    state.lanes = Array.from({ length: 22 }, (_, i) => ({
+      x: Math.random(),
+      y: i / 22,
+      speed: 0.65 + Math.random() * 1.15,
+      alpha: 0.15 + Math.random() * 0.25
+    }));
+  };
+
+  window.addEventListener("resize", resize, { passive: true });
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", resize, { passive: true });
+  resize();
+
+  const makeRace = (distance, name) => ({
+    name,
+    distance,
+    x: 0,
+    v: 1.6,
+    phase: "underwater",
+    startAt: 0,
+    finishAt: 0,
+    nextWall: POOL_LENGTH,
+    underwaterStart: 0,
+    underwater: { pull: false, kick: false, dolphin: false, kickAt: 0 },
+    cycle: "pull",
+    lastSide: { L: -9999, R: -9999 },
+    pendingWallTimer: 0,
+    lastInputAt: 0,
+    lastPullAt: 0,
+    lastKickAt: 0,
+    kickAt: 0,
+    glidePending: false,
+    glideAwarded: false,
+    strokePulse: 0,
+    kickPulse: 0,
+    touchPulse: 0,
+    strobeAt: 0,
+    stamina: 100,
+    oxygen: 100,
+    disqualified: false,
+    disqReason: "",
+    metrics: {
+      pullPerfect: 0,
+      pullGood: 0,
+      pullBad: 0,
+      kickPerfect: 0,
+      kickGood: 0,
+      kickBad: 0,
+      glidePerfect: 0,
+      glideGood: 0,
+      glideBad: 0,
+      touchPerfect: 0,
+      touchGood: 0,
+      touchBad: 0,
+      pulloutGood: 0,
+      maxSpeed: 0
+    }
+  });
+
+  const setFeedback = (text, color = "#19e6ff", duration = 700) => {
+    state.feedbackUntil = now() + duration;
+    feedbackText.textContent = text;
+    feedbackText.style.color = color;
+    feedback.classList.add("show");
+  };
+
+  const addParticles = (x, y, count, power, color = "25, 230, 255") => {
+    for (let i = 0; i < count; i++) {
+      state.particles.push({
+        x,
+        y,
+        vx: (Math.random() - 0.5) * power,
+        vy: (Math.random() - 0.8) * power,
+        life: 1,
+        r: 1.5 + Math.random() * 3.4,
+        color
+      });
+    }
+  };
+
+  // 固定25mプール(他4作と同じ環境): 画面内に両端の壁が見え、スイマーがプールを縦断する。
+  // 奇数レグ=下の壁から上へ、偶数レグ=上の壁から下へ折り返す。
+  const layoutPool = () => {
+    const top = Math.max(150, state.h * 0.19);
+    const bottom = state.h - Math.max(200, state.h * 0.25);
+    const laneW = Math.min(state.w * 0.78, 410);
+    const laneX = (state.w - laneW) / 2;
+    return { top, bottom, laneX, laneW, span: bottom - top };
+  };
+  const legInfo = () => {
+    const race = state.race;
+    if (!race) return { leg: 1, frac: 0, odd: true };
+    const leg = Math.max(1, Math.round(race.nextWall / POOL_LENGTH));
+    const legStart = (leg - 1) * POOL_LENGTH;
+    const frac = clamp((race.x - legStart) / POOL_LENGTH, 0, 1);
+    return { leg, frac, odd: leg % 2 === 1 };
+  };
+  const swimmerPoint = () => {
+    const l = layoutPool();
+    const { frac, odd } = legInfo();
+    return { x: state.w * 0.5, y: odd ? l.bottom - frac * l.span : l.top + frac * l.span };
+  };
+  const underwaterDistance = () => state.race ? state.race.x - state.race.underwaterStart : 0;
+  const distanceToWall = () => state.race ? state.race.nextWall - state.race.x : 99;
+  const nearWall = () => {
+    const d = distanceToWall();
+    return d <= 1.45 && d >= -0.18;
+  };
+
+  const clearTimers = () => {
+    state.timers.forEach((id) => clearTimeout(id));
+    state.timers = [];
+  };
+
+  const schedule = (fn, delay) => {
+    const id = setTimeout(fn, delay);
+    state.timers.push(id);
+    return id;
+  };
+
+  const showGameUi = () => {
+    titleScreen.classList.add("hidden");
+    resultScreen.classList.add("hidden");
+    topHud.classList.remove("hidden");
+    controls.classList.remove("hidden");
+    pcHelp.classList.remove("hidden");
+  };
+
+  const hideGameUi = () => {
+    topHud.classList.add("hidden");
+    controls.classList.add("hidden");
+    pcHelp.classList.add("hidden");
+  };
+
+  const startSequence = () => {
+    clearTimers();
+    const distance = state.selectedDistance;
+    const name = getName();
+    state.race = makeRace(distance, name);
+    state.mode = "prestart";
+    state.particles = [];
+    showGameUi();
+    updateControls();
+    setFeedback("短笛... 構えて", "#cfe7f7", 900);
+    schedule(() => { shortWhistle(); setFeedback("短笛", "#cfe7f7", 700); }, 120);
+    schedule(() => { longWhistle(); setFeedback("ロングホイッスル", "#19e6ff", 950); }, 1200);
+    schedule(() => { speakMarks(); setFeedback("Take your marks", "#ffd166", 900); }, 2450);
+    schedule(() => {
+      if (state.mode !== "prestart" || !state.race) return;
+      startBeep();
+      vibrate(40);
+      state.mode = "race";
+      state.race.startAt = now();
+      state.race.strobeAt = now();
+      setFeedback("START", "#5df2a7", 650);
+    }, 3750);
+  };
+
+  const grade = (good, total) => {
+    if (!total) return "-";
+    const ratio = good / total;
+    if (ratio >= .86) return "S";
+    if (ratio >= .68) return "A";
+    if (ratio >= .48) return "B";
+    return "C";
+  };
+
+  const disqualify = (reason) => {
+    const race = state.race;
+    if (!race || race.disqualified || state.mode === "result") return;
+    race.disqualified = true;
+    race.disqReason = reason;
+    race.finishAt = now();
+    state.mode = "result";
+    clearTimers();
+    hideGameUi();
+    setFeedback(reason, "#ff5b7a", 1400);
+    tone(150, 0.32, "sawtooth", 0.09);
+    showResult(true);
+  };
+
+  const falseStart = () => disqualify("フライング失格: 合図前入力");
+
+  const checkPrestart = () => {
+    if (state.mode === "prestart") {
+      falseStart();
+      return true;
+    }
+    return state.mode !== "race" || !state.race;
+  };
+
+  const penalize = (message, amount = 0.2, stamina = 4, oxygen = 2) => {
+    const race = state.race;
+    if (!race) return;
+    race.v = clamp(race.v - amount, 0.35, 5.4);
+    race.stamina = clamp(race.stamina - stamina, 0, 100);
+    race.oxygen = clamp(race.oxygen - oxygen, 0, 100);
+    setFeedback(message, "#ffd166", 620);
+    tone(230, 0.08, "triangle", 0.055);
+  };
+
+  const markButton = (side) => {
+    const btn = side === "L" ? leftBtn : rightBtn;
+    btn.classList.add("active");
+    setTimeout(() => btn.classList.remove("active"), 160);
+  };
+
+  const handleTwoHandInput = () => {
+    const race = state.race;
+    if (!race) return;
+    if (race.pendingWallTimer) {
+      clearTimeout(race.pendingWallTimer);
+      race.pendingWallTimer = 0;
+    }
+
+    if (nearWall()) {
+      twoHandTouch();
+      return;
+    }
+
+    if (race.phase === "underwater") {
+      underwaterPull();
+      return;
+    }
+
+    surfacePull();
+  };
+
+  const registerHand = (side) => {
+    if (checkPrestart()) return;
+    const race = state.race;
+    const t = now();
+    markButton(side);
+    race.lastSide[side] = t;
+    race.lastInputAt = t;
+    const other = side === "L" ? "R" : "L";
+
+    if (Math.abs(race.lastSide[other] - t) <= SYNC_WINDOW) {
+      handleTwoHandInput();
+      return;
+    }
+
+    // 片手目だけでは判定しない。相手の手を短時間待ち、来なければ初めて片手扱い。
+    // (即ペナルティにすると両手プルの1本目が毎回誤ペナルティになる)
+    if (race.pendingWallTimer) clearTimeout(race.pendingWallTimer);
+    if (nearWall()) {
+      race.pendingWallTimer = setTimeout(() => {
+        if (state.mode === "race" && nearWall()) disqualify("片手タッチ失格: 平泳ぎは両手同時タッチ");
+      }, SYNC_WINDOW + 45);
+      setFeedback("壁前は両手同時タッチ", "#ffd166", 520);
+      return;
+    }
+    race.pendingWallTimer = setTimeout(() => {
+      race.pendingWallTimer = 0;
+      if (state.mode !== "race") return;
+      penalize("左右同時で両手プル", 0.12, 2, 1);
+      race.metrics.pullBad += 1;
+    }, SYNC_WINDOW + 45);
+  };
+
+  const underwaterPull = () => {
+    const race = state.race;
+    if (race.underwater.pull) {
+      penalize("ひとかきは1回だけ", 0.28, 4, 3);
+      return;
+    }
+    race.underwater.pull = true;
+    race.v = clamp(race.v + 0.95, 0.5, 5.15);
+    race.oxygen = clamp(race.oxygen + 8, 0, 100);
+    race.stamina = clamp(race.stamina - 4, 0, 100);
+    race.metrics.pulloutGood += 1;
+    race.strokePulse = 1;
+    const p = swimmerPoint();
+    addParticles(p.x, p.y + 10, 22, 4.8, "25, 230, 255");
+    setFeedback("ひとかき成功", "#19e6ff", 620);
+    tone(880, 0.06, "sine", 0.07);
+  };
+
+  const underwaterAction = () => {
+    const race = state.race;
+    const u = underwaterDistance();
+    const t = now();
+
+    if (race.underwater.kick && t - race.underwater.kickAt > 260 && u >= 5.8) {
+      breakout(true);
+      return;
+    }
+
+    if (!race.underwater.pull && !race.underwater.dolphin) {
+      race.underwater.dolphin = true;
+      race.v = clamp(race.v + 0.38, 0.5, 4.75);
+      race.stamina = clamp(race.stamina - 2, 0, 100);
+      race.kickPulse = 1;
+      setFeedback("ドルフィンキック1回", "#8eefff", 520);
+      tone(620, 0.05, "triangle", 0.055);
+      return;
+    }
+
+    if (!race.underwater.pull) {
+      penalize("先に両手でひとかき", 0.22, 3, 2);
+      return;
+    }
+
+    if (race.underwater.kick) {
+      if (u >= 5.8) breakout(true);
+      else penalize("浮上にはまだ浅い", 0.18, 2, 2);
+      return;
+    }
+
+    race.underwater.kick = true;
+    race.underwater.kickAt = t;
+    race.v = clamp(race.v + 0.9, 0.5, 5.25);
+    race.stamina = clamp(race.stamina - 5, 0, 100);
+    race.kickPulse = 1;
+    const p = swimmerPoint();
+    addParticles(p.x - 38, p.y + 20, 18, 4.5, "93, 242, 167");
+    setFeedback("ひとけり成功", "#5df2a7", 620);
+    tone(760, 0.06, "sine", 0.07);
+  };
+
+  const breakout = (manual) => {
+    const race = state.race;
+    if (!race || race.phase !== "underwater") return;
+    const u = underwaterDistance();
+    if (u > UNDERWATER_LIMIT) {
+      disqualify("15m潜水違反");
+      return;
+    }
+    race.phase = "surface";
+    race.cycle = "pull";
+    race.underwaterStart = race.x;
+    race.v = clamp(race.v + (u >= 9 && u <= 13.8 ? 0.34 : -0.18), 0.55, 5.2);
+    setFeedback(u >= 9 && u <= 13.8 ? "浮上成功" : (manual ? "浮上タイミング注意" : "自動浮上"), u >= 9 && u <= 13.8 ? "#5df2a7" : "#ffd166", 680);
+    tone(720, 0.08, "sine", 0.06);
+    updateControls();
+  };
+
+  const surfacePull = () => {
+    const race = state.race;
+    const t = now();
+    const sinceKick = t - race.kickAt;
+
+    if (race.cycle === "glide" && sinceKick < GLIDE_MIN) {
+      race.metrics.glideBad += 1;
+      penalize("グライドを待つ", 0.33, 4, 3);
+      race.cycle = "pull";
+      race.glidePending = false;
+      return;
+    }
+
+    if (race.cycle !== "pull") {
+      race.metrics.pullBad += 1;
+      penalize("プルだけ連打で失速", 0.3, 5, 3);
+      race.cycle = "pull";
+      return;
+    }
+
+    const gap = race.lastPullAt ? (t - race.lastPullAt) / 1000 : 1.2;
+    race.lastPullAt = t;
+    race.lastInputAt = t;
+    let boost = 0.62;
+    let text = "両手プル成功";
+    let color = "#19e6ff";
+
+    if (gap < 0.62) {
+      boost = 0.08;
+      text = "呼吸しすぎ・プル連打";
+      color = "#ffd166";
+      race.metrics.pullBad += 1;
+      race.stamina = clamp(race.stamina - 6, 0, 100);
+    } else if (gap <= 1.28) {
+      boost = 0.78;
+      race.metrics.pullPerfect += 1;
+    } else {
+      boost = 0.46;
+      text = "両手プル GOOD";
+      color = "#5df2a7";
+      race.metrics.pullGood += 1;
+    }
+
+    boost *= 0.78 + race.stamina / 250 + race.oxygen / 360;
+    race.v = clamp(race.v + boost, 0.45, 5.15);
+    race.oxygen = clamp(race.oxygen + 12, 0, 100);
+    race.stamina = clamp(race.stamina - 3.4, 0, 100);
+    race.cycle = "kick";
+    race.strokePulse = 1;
+    const p = swimmerPoint();
+    addParticles(p.x, p.y + 6, 18, 4.1, "25, 230, 255");
+    setFeedback(text, color, 560);
+    tone(color === "#ffd166" ? 280 : 940, 0.055, "sine", 0.068);
+  };
+
+  const surfaceKick = () => {
+    const race = state.race;
+    const t = now();
+    if (race.cycle === "glide" && t - race.kickAt < GLIDE_MIN) {
+      race.metrics.kickBad += 1;
+      penalize("キック連打で失速", 0.36, 5, 3);
+      return;
+    }
+    if (race.cycle !== "kick") {
+      race.metrics.kickBad += 1;
+      penalize("先に両手プル", 0.25, 4, 2);
+      return;
+    }
+
+    const gap = race.lastKickAt ? (t - race.lastKickAt) / 1000 : 1.0;
+    race.lastKickAt = t;
+    race.kickAt = t;
+    race.glidePending = true;
+    race.glideAwarded = false;
+    race.cycle = "glide";
+    race.lastInputAt = t;
+    race.kickPulse = 1;
+
+    if (gap < 0.55) {
+      race.metrics.kickBad += 1;
+      race.v = clamp(race.v + 0.08, 0.45, 5.0);
+      race.stamina = clamp(race.stamina - 7, 0, 100);
+      setFeedback("キック連打注意", "#ffd166", 560);
+      tone(260, 0.075, "triangle", 0.058);
+    } else if (gap <= 1.55) {
+      race.metrics.kickPerfect += 1;
+      race.v = clamp(race.v + 0.72, 0.45, 5.25);
+      race.stamina = clamp(race.stamina - 4.5, 0, 100);
+      setFeedback("キック成功", "#5df2a7", 520);
+      tone(820, 0.055, "sine", 0.068);
+    } else {
+      race.metrics.kickGood += 1;
+      race.v = clamp(race.v + 0.48, 0.45, 5.05);
+      race.stamina = clamp(race.stamina - 4, 0, 100);
+      setFeedback("キック GOOD", "#5df2a7", 520);
+      tone(620, 0.05, "sine", 0.06);
+    }
+
+    const p = swimmerPoint();
+    addParticles(p.x - 44, p.y + 20, 20, 4.6, "93, 242, 167");
+  };
+
+  const actionInput = () => {
+    if (checkPrestart()) return;
+    const race = state.race;
+    actionBtn.classList.add("active");
+    setTimeout(() => actionBtn.classList.remove("active"), 140);
+    race.lastInputAt = now();
+
+    if (race.phase === "underwater") {
+      underwaterAction();
+      return;
+    }
+
+    if (nearWall()) {
+      setFeedback("壁は両手同時タッチ", "#ffd166", 540);
+      return;
+    }
+    surfaceKick();
+  };
+
+  const twoHandTouch = () => {
+    const race = state.race;
+    const remaining = distanceToWall();
+    const wall = race.nextWall;
+    let gradeText = "両手同時タッチ成功";
+    let boost = 1.55;
+
+    if (remaining >= 0.18 && remaining <= 0.82) {
+      race.metrics.touchPerfect += 1;
+      gradeText = wall >= race.distance ? "両手同時ゴール成功" : "両手同時ターン成功";
+      boost = 1.95;
+      tone(1180, 0.09, "sine", 0.083);
+    } else {
+      race.metrics.touchGood += 1;
+      boost = 1.55;
+      tone(680, 0.08, "triangle", 0.07);
+    }
+
+    race.touchPulse = 1;
+    race.x = wall;
+    const p = swimmerPoint();
+    addParticles(p.x + 62, p.y, 34, 6.4, "25, 230, 255");
+
+    if (wall >= race.distance) {
+      finishRace();
+      return;
+    }
+
+    race.nextWall += POOL_LENGTH;
+    race.v = boost;
+    race.phase = "underwater";
+    race.underwaterStart = race.x;
+    race.underwater = { pull: false, kick: false, dolphin: false, kickAt: 0 };
+    race.cycle = "pull";
+    race.glidePending = false;
+    race.oxygen = clamp(race.oxygen + 8, 0, 100);
+    race.stamina = clamp(race.stamina - 3, 0, 100);
+    setFeedback(`${gradeText} / 水中プルアウトへ`, "#19e6ff", 760);
+    vibrate(25);
+    updateControls();
+  };
+
+  const finishRace = () => {
+    const race = state.race;
+    if (!race || state.mode === "result") return;
+    race.finishAt = now();
+    race.x = race.distance;
+    state.mode = "result";
+    hideGameUi();
+    setFeedback("FINISH", "#5df2a7", 1000);
+    showResult(false);
+  };
+
+  const resultAdvice = (race) => {
+    if (race.disqualified) return race.disqReason;
+    const m = race.metrics;
+    const advice = [];
+    if (m.touchBad || m.touchPerfect + m.touchGood < Math.max(1, race.distance / 25)) advice.push("壁前はF+J、または左右同時タップを少し早めに準備すると安定します。");
+    if (m.pullBad > m.pullPerfect + m.pullGood) advice.push("プルだけ連打すると呼吸は増えますが、平泳ぎの伸びが消えます。");
+    if (m.kickBad > m.kickPerfect + m.kickGood) advice.push("キックはプルの後に1回。連打よりも次のグライドを待つ方が進みます。");
+    if (m.glidePerfect + m.glideGood < m.kickPerfect + m.kickGood) advice.push("キック後に一瞬待つとグライドで大きく伸びます。");
+    if (!advice.length) advice.push("プル、キック、グライド、両手同時タッチがかなり安定しています。ラスト10mのテンポをさらに上げられます。");
+    return advice[0];
+  };
+
+  const buildResultText = (race, seconds, rank) => {
+    if (race.disqualified) {
+      return `超・平泳ぎ タイムアタック\n${race.name} / ${race.distance}m 平泳ぎ\n結果: 失格\n理由: ${race.disqReason}`;
+    }
+    const place = rank.findIndex((item) => item.time === seconds && item.name === race.name) + 1;
+    return `超・平泳ぎ タイムアタック\n${race.name} / ${race.distance}m Breaststroke\n記録: ${seconds.toFixed(2)}s\n順位: ${place > 0 ? place : "-"}位\n平泳ぎはターン・ゴールの両手同時タッチが重要。`;
+  };
+
+  const showResult = (isDq) => {
+    const race = state.race;
+    const seconds = race.finishAt && race.startAt ? (race.finishAt - race.startAt) / 1000 : 0;
+    const m = race.metrics;
+    const pullTotal = m.pullPerfect + m.pullGood + m.pullBad;
+    const kickTotal = m.kickPerfect + m.kickGood + m.kickBad;
+    const glideTotal = m.glidePerfect + m.glideGood + m.glideBad;
+    const touchTotal = m.touchPerfect + m.touchGood + m.touchBad;
+    const rank = isDq ? getRankings(race.distance) : saveResult(race.distance, race.name, seconds);
+
+    document.getElementById("resultBrand").textContent = isDq ? "DISQUALIFIED" : "FINISH";
+    document.getElementById("resultTitle").textContent = `${race.distance}m 平泳ぎ`;
+    document.getElementById("resultTime").textContent = isDq ? "失格" : `${seconds.toFixed(2)}s`;
+    document.getElementById("resultPull").textContent = grade(m.pullPerfect + m.pullGood * .65, pullTotal);
+    document.getElementById("resultKick").textContent = grade(m.kickPerfect + m.kickGood * .65, kickTotal);
+    document.getElementById("resultGlide").textContent = grade(m.glidePerfect + m.glideGood * .65, glideTotal);
+    document.getElementById("resultTouch").textContent = touchTotal ? `${m.touchPerfect}S / ${touchTotal}` : "-";
+    document.getElementById("coachText").textContent = resultAdvice(race);
+
+    const rankingBox = document.getElementById("rankingBox");
+    if (rank.length) {
+      rankingBox.innerHTML = `<b>ローカルランキング ${race.distance}m</b><ol>${rank.slice(0, 5).map((item) => `<li>${escapeHtml(item.name)} ${item.time.toFixed(2)}s</li>`).join("")}</ol>`;
+    } else {
+      rankingBox.innerHTML = `<b>ローカルランキング ${race.distance}m</b><br>記録なし`;
+    }
+
+    state.resultText = buildResultText(race, seconds, rank);
+    copyText.value = state.resultText;
+    resultScreen.classList.remove("hidden");
+    refreshBestPreview();
+  };
+
+  const updateControls = () => {
+    const race = state.race;
+    if (!race) return;
+    const wall = nearWall();
+    leftBtn.classList.toggle("ready", wall);
+    rightBtn.classList.toggle("ready", wall);
+    actionBtn.classList.toggle("ready", race.phase === "underwater" && race.underwater.kick && underwaterDistance() >= 5.8);
+
+    if (race.phase === "underwater") {
+      actionBtn.innerHTML = race.underwater.kick ? "浮上<small>Space / 中央</small>" : "キック<small>ひとけり</small>";
+    } else if (wall) {
+      actionBtn.innerHTML = "壁前<small>左右同時タッチ</small>";
+    } else {
+      actionBtn.innerHTML = "キック<small>Space / 中央</small>";
+    }
+  };
+
+  const updatePhysics = (dt) => {
+    const race = state.race;
+    if (!race || state.mode !== "race") return;
+
+    race.strokePulse = Math.max(0, race.strokePulse - dt * 3.8);
+    race.kickPulse = Math.max(0, race.kickPulse - dt * 3.8);
+    race.touchPulse = Math.max(0, race.touchPulse - dt * 3.2);
+
+    const underwater = race.phase === "underwater";
+    // 平泳ぎは最も遅い泳法。抵抗を高くしてサージ→グライドの脈動と現実的な平均速度にする
+    const drag = underwater ? 0.27 : 0.82;
+    race.v -= race.v * drag * dt;
+    if (underwater && race.v < 1.45) race.v += 0.3 * dt;
+    if (!underwater && race.cycle === "glide") race.v -= race.v * 0.055 * dt;
+
+    const last10 = race.distance - race.x <= 10;
+    if (last10 && !underwater && race.stamina > 12) race.v += 0.18 * dt;
+
+    race.oxygen = clamp(race.oxygen - (underwater ? 4.8 : 1.25) * dt, 0, 100);
+    race.stamina = clamp(race.stamina + (underwater ? 0.9 : 1.45) * dt, 0, 100);
+    if (race.oxygen <= 4) race.v -= 0.46 * dt;
+    if (race.stamina <= 8) race.v -= 0.35 * dt;
+
+    race.v = clamp(race.v, underwater ? 0.7 : 0.3, 2.02);
+    race.x += race.v * dt;
+    race.metrics.maxSpeed = Math.max(race.metrics.maxSpeed, race.v);
+
+    if (underwater && underwaterDistance() > UNDERWATER_LIMIT) {
+      disqualify("15m潜水違反: 15mまでに浮上できませんでした");
+      return;
+    }
+
+    if (race.phase === "surface" && race.glidePending) {
+      const elapsed = now() - race.kickAt;
+      if (!race.glideAwarded && elapsed >= GLIDE_BEST && elapsed <= GLIDE_MAX) {
+        race.glideAwarded = true;
+        race.glidePending = false;
+        race.cycle = "pull";
+        race.metrics.glidePerfect += 1;
+        race.v = clamp(race.v + 0.46, 0.45, 5.25);
+        race.oxygen = clamp(race.oxygen - 1.2, 0, 100);
+        setFeedback("グライド成功", "#19e6ff", 520);
+        tone(1020, 0.045, "sine", 0.05);
+      } else if (elapsed > GLIDE_MAX + 280) {
+        race.glidePending = false;
+        race.cycle = "pull";
+        race.metrics.glideGood += 1;
+        setFeedback("次のプルへ", "#8ea6bd", 380);
+      }
+    }
+
+    if (race.x > race.nextWall + 0.28) {
+      race.metrics.touchBad += 1;
+      disqualify("両手同時タッチ失敗: 壁を通過しました");
+      return;
+    }
+
+    updateControls();
+  };
+
+  const updateParticles = (dt) => {
+    for (const p of state.particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 7 * dt;
+      p.life -= 1.55 * dt;
+    }
+    state.particles = state.particles.filter((p) => p.life > 0);
+  };
+
+  const drawWater = (t) => {
+    const { w, h } = state;
+    const race = state.race;
+    const speed = race ? race.v : 0.35;
+    const phase = race ? race.phase : "surface";
+    const background = ctx.createLinearGradient(0, 0, 0, h);
+    background.addColorStop(0, "#020713");
+    background.addColorStop(0.42, phase === "underwater" ? "#052a49" : "#0b3d69");
+    background.addColorStop(1, "#03101d");
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, w, h);
+
+    // プール水面(固定25mレーン)
+    const l = layoutPool();
+    const water = ctx.createLinearGradient(l.laneX, 0, l.laneX + l.laneW, 0);
+    water.addColorStop(0, "rgba(25, 230, 255, .07)");
+    water.addColorStop(0.5, "rgba(75, 167, 255, .22)");
+    water.addColorStop(1, "rgba(25, 230, 255, .07)");
+    ctx.fillStyle = water;
+    ctx.fillRect(l.laneX, l.top, l.laneW, l.span);
+
+    // 水の流れ(プール内のみ)
+    ctx.save();
+    ctx.beginPath(); ctx.rect(l.laneX, l.top, l.laneW, l.span); ctx.clip();
+    ctx.strokeStyle = "rgba(255, 255, 255, .11)";
+    ctx.lineWidth = 1;
+    for (const line of state.lanes) {
+      const y = l.top + ((line.y * l.span) + (t * 0.018 * line.speed * speed)) % l.span;
+      ctx.globalAlpha = line.alpha;
+      ctx.beginPath();
+      ctx.moveTo(l.laneX + l.laneW * line.x - 16, y);
+      ctx.lineTo(l.laneX + l.laneW * line.x + 44, y + 18);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    // 両端の壁
+    ctx.fillStyle = "#d6e6f0";
+    ctx.fillRect(l.laneX - 10, l.top - 12, l.laneW + 20, 12);
+    ctx.fillRect(l.laneX - 10, l.bottom, l.laneW + 20, 12);
+
+    // コースロープ(壁から5m相当は赤)
+    const seg = 18;
+    for (const sx of [l.laneX - 6, l.laneX + l.laneW + 6]) {
+      for (let y = l.top; y < l.bottom; y += seg) {
+        const near5 = (y - l.top) < l.span * (5 / POOL_LENGTH) || (l.bottom - y) < l.span * (5 / POOL_LENGTH);
+        ctx.fillStyle = (Math.floor(y / seg) % 2 === 0) ? (near5 ? "#ff5b7a" : "#f4fbff") : "#4ba7ff";
+        ctx.beginPath(); ctx.arc(sx, y + seg / 2, 3.5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // センターライン(T字)
+    ctx.fillStyle = "rgba(3, 24, 46, .55)";
+    ctx.fillRect(w / 2 - 3, l.top, 6, l.span);
+    ctx.fillRect(w / 2 - 16, l.top + 6, 32, 5);
+    ctx.fillRect(w / 2 - 16, l.bottom - 11, 32, 5);
+  };
+
+  // 固定プール上のマーカー: 15m潜水ライン(現在レグの出発壁から15m)、ターン/ゴール壁の強調、ラスト10m帯
+  const drawMarkers = () => {
+    const race = state.race;
+    if (!race || (state.mode !== "race" && state.mode !== "prestart")) return;
+    const { w } = state;
+    const l = layoutPool();
+    const { odd } = legInfo();
+    const remaining = race.distance - race.x;
+    const toWall = distanceToWall();
+    const targetWallY = odd ? l.top : l.bottom;
+
+    // ラスト10mスパート帯
+    if (remaining <= 10 && remaining > 0) {
+      const zoneLen = l.span * (10 / POOL_LENGTH);
+      ctx.fillStyle = "rgba(255, 209, 102, .1)";
+      ctx.fillRect(l.laneX, odd ? l.top : l.bottom - zoneLen, l.laneW, zoneLen);
+    }
+
+    // 15m潜水ライン(スタート/ターンの壁から15m)
+    if (race.phase === "underwater") {
+      const f15 = UNDERWATER_LIMIT / POOL_LENGTH;
+      const y15 = odd ? l.bottom - f15 * l.span : l.top + f15 * l.span;
+      const danger = underwaterDistance() > 13.6;
+      const col = danger ? "rgba(255, 91, 122, .96)" : "rgba(93, 242, 167, .74)";
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 5]);
+      ctx.beginPath();
+      ctx.moveTo(l.laneX, y15);
+      ctx.lineTo(l.laneX + l.laneW, y15);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = col;
+      ctx.font = "900 12px ui-monospace, monospace";
+      ctx.textAlign = "left";
+      ctx.fillText("15m", l.laneX + 6, y15 + (odd ? -6 : 14));
+    }
+
+    // ターン/ゴール壁の強調(接近時に点滅バンド + 両手同時タッチ表示)
+    if (state.mode === "race" && toWall <= 5 && toWall > -0.2) {
+      const zH = l.span * (1.6 / POOL_LENGTH);
+      ctx.globalAlpha = 0.22 + 0.14 * Math.sin(performance.now() / 95);
+      ctx.fillStyle = "#ffd166";
+      ctx.fillRect(l.laneX, odd ? l.top : l.bottom - zH, l.laneW, zH);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#ffd166";
+      ctx.font = "900 15px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(race.nextWall >= race.distance ? "GOAL 両手同時タッチ!" : "TURN 両手同時タッチ!", w / 2, odd ? l.top + zH + 22 : l.bottom - zH - 12);
+    }
+
+    // 目標の壁ラベル
+    ctx.fillStyle = "rgba(214, 246, 255, .85)";
+    ctx.font = "900 11px ui-monospace, monospace";
+    ctx.textAlign = "center";
+    ctx.fillText(race.nextWall >= race.distance ? "GOAL" : "WALL", w / 2, targetWallY + (odd ? -18 : 26));
+  };
+
+  // 縦向きスイマー(頭が上=進行方向)。平泳ぎのプル(腕を左右へ掻く)とあおり足を表現
+  const drawSwimmer = (t) => {
+    const race = state.race;
+    const point = swimmerPoint();
+    const phase = race ? race.phase : "surface";
+    const stroke = race ? race.strokePulse : 0;
+    const kick = race ? race.kickPulse : 0;
+    const pulse = Math.sin(t * 0.012);
+    const bob = Math.sin(t * 0.006) * 3;
+    const surge = -(stroke + kick) * 3.5; // 掻き・蹴りで前(上)へ伸びる
+
+    const { odd } = legInfo();
+    ctx.save();
+    ctx.translate(point.x, point.y);
+    if (!odd) ctx.rotate(Math.PI); // 偶数レグは180°回転して折り返し方向(下)へ頭から進む
+
+    // 後方へ伸びる伴流
+    ctx.fillStyle = phase === "underwater" ? "rgba(25, 230, 255, .11)" : "rgba(255, 255, 255, .08)";
+    ctx.beginPath();
+    ctx.ellipse(0, 30 + stroke * 12, 15 + kick * 4, 72 + stroke * 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.translate(0, bob + surge);
+    ctx.lineCap = "round";
+
+    // 胴体(縦)
+    ctx.strokeStyle = phase === "underwater" ? "rgba(25, 230, 255, .9)" : "#f4fbff";
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(0, -22);
+    ctx.lineTo(0, 24);
+    ctx.stroke();
+
+    // 頭(上)
+    ctx.fillStyle = "#f4fbff";
+    ctx.beginPath();
+    ctx.arc(0, -30, 9, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (phase === "underwater") {
+      // 蹴伸び: 両腕を前方(上)にそろえる
+      ctx.strokeStyle = "rgba(25, 230, 255, .9)";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-4, -22); ctx.quadraticCurveTo(-2, -40, 0, -52);
+      ctx.moveTo(4, -22); ctx.quadraticCurveTo(2, -40, 0, -52);
+      ctx.stroke();
+    } else {
+      // 平泳ぎのプル: 腕を左右へ大きく掻く
+      const reach = 14 + stroke * 22;
+      ctx.strokeStyle = stroke > .1 ? "#19e6ff" : "rgba(25, 230, 255, .92)";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-3, -18); ctx.quadraticCurveTo(-20 - stroke * 5, -28 - pulse * 2, -12 - reach, -6);
+      ctx.moveTo(3, -18); ctx.quadraticCurveTo(20 + stroke * 5, -28 + pulse * 2, 12 + reach, -6);
+      ctx.stroke();
+    }
+
+    // あおり足(下): キックで大きく開いて挟む
+    const legOpen = 8 + kick * 22;
+    ctx.strokeStyle = kick > .1 ? "#5df2a7" : "rgba(75, 167, 255, .88)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-2, 24); ctx.quadraticCurveTo(-legOpen, 40, -7 - kick * 4, 58);
+    ctx.moveTo(2, 24); ctx.quadraticCurveTo(legOpen, 40, 7 + kick * 4, 58);
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  const drawParticles = () => {
+    for (const p of state.particles) {
+      ctx.fillStyle = `rgba(${p.color}, ${p.life})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  };
+
+  const drawBottomHints = () => {
+    const race = state.race;
+    if (!race || (state.mode !== "race" && state.mode !== "prestart")) return;
+    const { w, h } = state;
+    let text = "合図前入力はフライング失格";
+    let color = "#d8edf8";
+
+    if (state.mode === "race") {
+      if (race.phase === "underwater") {
+        text = `${underwaterDistance().toFixed(1)}m 潜水中 / Spaceでキック・浮上`;
+        color = underwaterDistance() > 13.4 ? "#ff5b7a" : "#d8edf8";
+      } else if (nearWall()) {
+        text = "平泳ぎはターン・ゴールの両手同時タッチが重要";
+        color = "#ffd166";
+      } else if (race.distance - race.x <= 10) {
+        text = "ラスト10m 全力スパート";
+        color = "#ffd166";
+      } else {
+        text = race.cycle === "pull" ? "左右同時で両手プル" : race.cycle === "kick" ? "中央 / Spaceでキック" : "少し待ってグライド";
+      }
+    }
+
+    ctx.fillStyle = "rgba(3, 9, 20, .7)";
+    ctx.strokeStyle = "rgba(92, 206, 255, .24)";
+    ctx.lineWidth = 1;
+    const boxW = Math.min(350, w - 24);
+    const x = (w - boxW) / 2;
+    const y = h - 190;
+    ctx.beginPath();
+    ctx.roundRect(x, y, boxW, 42, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.font = "900 13px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(text, w / 2, y + 26);
+  };
+
+  const drawStrobe = () => {
+    const race = state.race;
+    if (!race || !race.strobeAt) return;
+    const k = 1 - (now() - race.strobeAt) / 320;
+    if (k <= 0) return;
+    ctx.globalAlpha = Math.max(0, k * 0.7);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, state.w, state.h);
+    ctx.globalAlpha = 1;
+  };
+
+  const draw = (t) => {
+    drawWater(t);
+    drawMarkers();
+    drawParticles();
+    drawSwimmer(t);
+    drawBottomHints();
+    drawStrobe();
+  };
+
+  const updateHud = () => {
+    const race = state.race;
+    if (!race) {
+      phaseText.textContent = "READY";
+      distanceText.textContent = `0.0 / ${state.selectedDistance}m`;
+      progressBar.style.width = "0%";
+      staminaBar.style.width = "100%";
+      oxygenBar.style.width = "100%";
+      clockText.textContent = "0.00";
+      return;
+    }
+
+    const elapsed = race.startAt ? ((race.finishAt || now()) - race.startAt) / 1000 : 0;
+    const wallLabel = nearWall() ? (race.nextWall >= race.distance ? "GOAL TOUCH" : "TURN TOUCH") : "";
+    const phaseLabel = state.mode === "prestart" ? "START SET" : wallLabel || (race.phase === "underwater" ? "PULLOUT" : `BREAST ${race.cycle.toUpperCase()}`);
+    phaseText.textContent = phaseLabel;
+    distanceText.textContent = `${clamp(race.x, 0, race.distance).toFixed(1)} / ${race.distance}m`;
+    progressBar.style.width = `${clamp((race.x / race.distance) * 100, 0, 100)}%`;
+    staminaBar.style.width = `${clamp(race.stamina, 0, 100)}%`;
+    oxygenBar.style.width = `${clamp(race.oxygen, 0, 100)}%`;
+    staminaText.textContent = `${Math.round(clamp(race.stamina, 0, 100))}`;
+    oxygenText.textContent = `${Math.round(clamp(race.oxygen, 0, 100))}`;
+    clockText.textContent = elapsed.toFixed(2);
+  };
+
+  const tick = (t) => {
+    const dt = Math.min(0.05, (t - state.lastFrame) / 1000);
+    state.lastFrame = t;
+    updatePhysics(dt);
+    updateParticles(dt);
+    draw(t);
+    updateHud();
+    if (now() > state.feedbackUntil) feedback.classList.remove("show");
+    requestAnimationFrame(tick);
+  };
+
+  leftBtn.addEventListener("pointerdown", (event) => { event.preventDefault(); registerHand("L"); });
+  rightBtn.addEventListener("pointerdown", (event) => { event.preventDefault(); registerHand("R"); });
+  actionBtn.addEventListener("pointerdown", (event) => { event.preventDefault(); actionInput(); });
+
+  canvas.addEventListener("pointerdown", (event) => {
+    if (state.mode !== "race" && state.mode !== "prestart") return;
+    event.preventDefault();
+    const x = event.clientX;
+    if (x < state.w * 0.36) registerHand("L");
+    else if (x > state.w * 0.64) registerHand("R");
+    else actionInput();
+  });
+
+  const isKey = (event, keys) => keys.includes(event.key.toLowerCase());
+
+  window.addEventListener("keydown", (event) => {
+    if ([" ", "ArrowLeft", "ArrowRight", "ArrowDown", "ArrowUp"].includes(event.key) || isKey(event, ["f", "j", "enter"])) {
+      event.preventDefault();
+    }
+    if (event.repeat) return;
+
+    if (state.mode === "title" && isKey(event, ["enter", " "])) {
+      startSequence();
+      return;
+    }
+    if (state.mode === "result" && isKey(event, ["enter", " "])) {
+      startSequence();
+      return;
+    }
+
+    if (isKey(event, ["f", "arrowleft"])) registerHand("L");
+    if (isKey(event, ["j", "arrowright"])) registerHand("R");
+    if (isKey(event, [" ", "arrowdown"])) actionInput();
+  });
+
+  document.getElementById("startBtn").addEventListener("click", startSequence);
+  document.getElementById("restartBtn").addEventListener("click", startSequence);
+
+  document.getElementById("copyBtn").addEventListener("click", async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(state.resultText);
+      } else {
+        copyText.focus();
+        copyText.select();
+        document.execCommand("copy");
+      }
+      setFeedback("結果をコピーしました", "#5df2a7", 700);
+    } catch (error) {
+      copyText.focus();
+      copyText.select();
+      setFeedback("テキストを選択しました", "#ffd166", 900);
+    }
+  });
+
+  document.getElementById("shareBtn").addEventListener("click", () => {
+    const text = encodeURIComponent(state.resultText);
+    const url = `https://twitter.com/intent/tweet?text=${text}`;
+    try {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      location.href = url;
+    }
+  });
+
+  window.__breaststrokeTimeAttack = {
+    getState: () => {
+      const r = state.race;
+      return {
+        mode: state.mode,
+        distance: r ? r.distance : state.selectedDistance,
+        x: r ? r.x : 0,
+        phase: r ? r.phase : "none",
+        nextWall: r ? r.nextWall : 0,
+        v: r ? r.v : 0,
+        cycle: r ? r.cycle : "",
+        underwaterDist: r ? underwaterDistance() : 0,
+        underwater: r ? { ...r.underwater } : null,
+        nearWall: r ? nearWall() : false,
+        distToWall: r ? distanceToWall() : 99,
+        stamina: r ? r.stamina : 0,
+        oxygen: r ? r.oxygen : 0,
+        disqualified: r ? r.disqualified : false,
+        disqReason: r ? r.disqReason : "",
+        finalTime: r && r.finishAt && r.startAt ? (r.finishAt - r.startAt) / 1000 : 0,
+        metrics: r ? { ...r.metrics } : null
+      };
+    },
+    forceStart: () => {
+      clearTimers();
+      state.race = makeRace(state.selectedDistance, getName());
+      state.mode = "race";
+      state.race.startAt = now();
+      showGameUi();
+    },
+    left: () => registerHand("L"),
+    right: () => registerHand("R"),
+    action: actionInput,
+    setDistance
+  };
+
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

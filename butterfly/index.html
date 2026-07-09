@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<title>超・バタフライ タイムアタック</title>
+<meta name="description" content="iPhone / Android / PCで遊べる、1ファイル完結のバタフライ水泳タイムアタックゲーム。">
+<meta property="og:title" content="超・バタフライ タイムアタック">
+<meta property="og:description" content="左右同時の両手プル、ドルフィンキック、呼吸タイミングで記録を狙え。">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #030914;
+    --panel: #0f172a;
+    --panel2: #020617;
+    --line: #1e293b;
+    --cyan: #22d3ee;
+    --cyan2: #67e8f9;
+    --gold: #fcd34d;
+    --green: #3df28f;
+    --red: #ff4669;
+    --text: #edf8ff;
+    --muted: #95b9d2;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    overscroll-behavior: none;
+  }
+  body.playing { overflow: hidden; position: fixed; inset: 0; }
+  #game {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: #030914;
+    touch-action: none;
+  }
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-direction: column;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
+    background:
+      radial-gradient(circle at 50% 0%, rgba(34, 211, 238, .14), transparent 36%),
+      rgba(2, 8, 20, .96);
+    overflow-y: auto;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+  .hidden { display: none !important; }
+  .wrap { width: min(430px, 100%); margin: auto 0; padding: 8px 0; }
+  h1 {
+    margin: 0;
+    font-size: clamp(25px, 7vw, 38px);
+    line-height: 1.15;
+    letter-spacing: .03em;
+    text-align: center;
+    color: transparent;
+    background: linear-gradient(90deg, #22d3ee, #3b82f6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    text-shadow: none;
+  }
+  .sub {
+    margin: 7px 0 14px;
+    color: var(--cyan);
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+    letter-spacing: .16em;
+  }
+  .panel {
+    width: 100%;
+    margin: 10px 0;
+    padding: 13px 14px;
+    border: 1px solid rgba(30, 41, 59, .92);
+    border-radius: 12px;
+    background: rgba(15, 23, 42, .9);
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, .24);
+  }
+  .panel p {
+    margin: 0;
+    color: #c6e8ff;
+    font-size: 12.5px;
+    line-height: 1.72;
+  }
+  .panel b { color: var(--gold); }
+  .row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+    margin: 10px 0;
+  }
+  .label {
+    width: 100%;
+    color: #6fa9c9;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .1em;
+  }
+  button, input { font: inherit; }
+  .opt {
+    flex: 1 1 0;
+    min-width: 118px;
+    min-height: 42px;
+    border: 1px solid #334155;
+    border-radius: 999px;
+    background: #1e293b;
+    color: #cbd5e1;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .opt.on {
+    border-color: #22d3ee;
+    background: #164e63;
+    color: #67e8f9;
+    box-shadow: 0 0 15px rgba(0, 240, 255, .34);
+  }
+  #nameInput {
+    width: 100%;
+    min-height: 46px;
+    padding: 11px 13px;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    outline: none;
+    background: #020617;
+    color: #67e8f9;
+    font-size: 16px;
+    text-align: center;
+  }
+  #nameInput::placeholder { color: #47708b; }
+  .btn {
+    width: 100%;
+    min-height: 52px;
+    margin-top: 10px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #00f0ff, #0072ff);
+    color: #020617;
+    font-size: 17px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 240, 255, .4);
+  }
+  .btn:active { transform: scale(.96); box-shadow: 0 2px 5px rgba(0, 240, 255, .2); }
+  .btn.sec {
+    min-height: 44px;
+    background: linear-gradient(135deg, #0f3655, #071c30);
+    border: 1px solid #1a5b87;
+    color: #b6e4ff;
+    font-size: 13px;
+    box-shadow: 0 4px 0 #03101d;
+  }
+  .btn.share {
+    background: linear-gradient(135deg, #1d9bf0, #1270b9);
+    color: #fff;
+    box-shadow: 0 4px 0 #0b4775, 0 8px 20px rgba(29, 155, 240, .26);
+  }
+  .best {
+    min-height: 20px;
+    color: var(--gold);
+    font-size: 13px;
+    font-weight: 800;
+    text-align: center;
+  }
+  .board {
+    width: 100%;
+    margin: 12px 0;
+    padding: 15px;
+    border: 2px solid #1a3347;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #030506, #0a0e10);
+    color: var(--gold);
+    font-family: "SFMono-Regular", Consolas, "Courier New", monospace;
+  }
+  .time {
+    font-size: clamp(40px, 13vw, 58px);
+    font-weight: 900;
+    line-height: 1.05;
+    text-align: center;
+    text-shadow: 0 0 16px rgba(255, 189, 48, .48);
+  }
+  .metric {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 7px;
+    margin-top: 7px;
+    border-top: 1px dashed #25313a;
+    color: #ffc559;
+    font-size: 12px;
+  }
+  .rankTitle {
+    color: var(--green);
+    font-size: 20px;
+    font-weight: 900;
+    text-align: center;
+    text-shadow: 0 0 12px rgba(61, 242, 143, .28);
+  }
+  .newbest {
+    margin-top: 8px;
+    color: var(--red);
+    font-size: 15px;
+    font-weight: 900;
+    text-align: center;
+    animation: blink .8s step-start infinite;
+  }
+  .ranking {
+    margin: 8px 0 0;
+    padding-left: 0;
+    list-style: none;
+    color: #c5e9ff;
+    font-size: 12.5px;
+    line-height: 1.75;
+  }
+  .ranking li {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    border-bottom: 1px solid rgba(126, 232, 255, .12);
+  }
+  .copied { min-height: 18px; margin-top: 8px; color: var(--green); font-size: 12px; text-align: center; }
+  .dsq { color: var(--red); font-size: clamp(34px, 11vw, 52px); font-weight: 950; text-align: center; }
+  .touchRule {
+    margin-top: 8px;
+    padding: 9px 10px;
+    border: 1px solid rgba(127, 29, 29, .64);
+    border-radius: 10px;
+    background: rgba(69, 10, 10, .36);
+    color: #fecaca;
+    font-size: 11.5px;
+    line-height: 1.6;
+  }
+  @keyframes blink { 50% { opacity: .25; } }
+  @media (max-height: 700px) {
+    .overlay { padding-top: max(10px, env(safe-area-inset-top)); }
+    .panel { padding: 10px 12px; margin: 8px 0; }
+    .panel p { font-size: 11.5px; line-height: 1.58; }
+    .btn { min-height: 48px; }
+    .row { margin: 8px 0; }
+  }
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="超・バタフライ タイムアタック"></canvas>
+
+<div id="title" class="overlay">
+  <div class="wrap">
+    <h1>超・バタフライ タイムアタック</h1>
+    <div class="sub">SUPER BUTTERFLY TIME ATTACK</div>
+    <div class="panel">
+      <p><b>スマホ:</b> 水中は左右連打でドルフィン / 水上は左右同時 / 中央で浮上・呼吸<br><b>PC:</b> 水中はF・J連打 / 水上はF+J / Spaceで浮上・呼吸<br><b>本格スタート:</b> 短笛、ロングホイッスル、Take your marks、電子音「ピーッ」。合図前入力はフライング失格。</p>
+      <div class="touchRule"><b>重要:</b> バタフライは平泳ぎと同じく、ターンとゴールの壁タッチが<b>両手同時</b>でないと大きな違反。片手タッチは失格です。</div>
+    </div>
+    <div class="row">
+      <div class="label">距離</div>
+      <button class="opt distOpt on" data-dist="50">50m (ターン1回)</button>
+      <button class="opt distOpt" data-dist="100">100m (ターン3回)</button>
+    </div>
+    <div class="row">
+      <div class="label">選手クラス (両手プル判定の厳しさ)</div>
+      <button class="opt levelOpt" data-window="185">一般</button>
+      <button class="opt levelOpt on" data-window="130">県大会</button>
+      <button class="opt levelOpt" data-window="85">全国</button>
+    </div>
+    <div class="row">
+      <div class="label">選手名</div>
+      <input id="nameInput" maxlength="12" autocomplete="off" placeholder="スイマー名">
+    </div>
+    <div id="bestLabel" class="best"></div>
+    <button id="startBtn" class="btn">レース開始</button>
+    <div class="sub" style="margin-top:10px;letter-spacing:0;font-size:10px;color:#94a3b8;">Butterfly: 両手プル / ドルフィンキック / 両手同時タッチ</div>
+  </div>
+</div>
+
+<div id="falseStart" class="overlay hidden">
+  <div class="wrap">
+    <div class="dsq">DSQ</div>
+    <div id="dsqSub" class="sub">FALSE START</div>
+    <div class="panel"><p id="dsqMsg"></p></div>
+    <button id="retryBtn" class="btn">もう一度スタート</button>
+    <button id="dsqHomeBtn" class="btn sec">タイトルへ</button>
+  </div>
+</div>
+
+<div id="result" class="overlay hidden">
+  <div class="wrap">
+    <div id="rankText" class="rankTitle"></div>
+    <div id="newBest" class="newbest hidden">NEW PERSONAL BEST</div>
+    <div class="board">
+      <div id="finalTime" class="time">--.--</div>
+      <div class="metric"><span>RT</span><span id="rRt">--</span></div>
+      <div class="metric"><span>50m LAP</span><span id="rSplit">--</span></div>
+      <div class="metric"><span>RHYTHM</span><span id="rRhythm">--</span></div>
+      <div class="metric"><span>MAX COMBO</span><span id="rCombo">--</span></div>
+    </div>
+    <div class="panel">
+      <p><b>ローカルランキング</b></p>
+      <ol id="rankingList" class="ranking"></ol>
+    </div>
+    <button id="againBtn" class="btn">もう一度泳ぐ</button>
+    <button id="shareBtn" class="btn share">Xで共有</button>
+    <button id="copyBtn" class="btn sec">コピー用結果テキスト</button>
+    <div id="copied" class="copied"></div>
+    <button id="homeBtn" class="btn sec">タイトルへ戻る</button>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+const $ = id => document.getElementById(id);
+const canvas = $("game");
+const ctx = canvas.getContext("2d");
+const storage = {
+  get(key) { try { return window.localStorage ? localStorage.getItem(key) : null; } catch (e) { return null; } },
+  set(key, val) { try { if (window.localStorage) localStorage.setItem(key, val); } catch (e) {} }
+};
+
+const STATE = { TITLE: 0, SHORT: 1, LONG: 2, MARKS: 3, SET: 4, SWIM: 5, FINISH: 6, DSQ: 7 };
+const POOL = 25;
+const BREAKOUT_LIMIT = 15;
+const GLIDE_END = 7.2;
+const UW_TARGET = 0.26;
+const UW_CAP = 2.58;
+const KEY_PREFIX = "super-fly-timeattack-v1";
+let W = 0, H = 0, DPR = 1, state = STATE.TITLE, raf = 0;
+let raceDistance = 50, pairWindow = 130, playerName = "", personalBest = null;
+let audioCtx = null, timers = [], keysDown = {};
+let particles = [], rings = [], message = { text: "", color: "#ffd45b", until: 0 };
+let prev = performance.now();
+
+const game = {
+  dist: 0, leg: 1, vel: 0, startAt: 0, signalAt: 0, rt: 0,
+  final: 0, split50: 0, stamina: 100, oxygen: 100, surfaced: false, dove: false,
+  pendingSide: "", pendingAt: 0, pendingTimer: 0, lastStrokeAt: 0, lastKickAt: 0,
+  strokeCount: 0, goodRhythm: 0, rhythmTotal: 0, combo: 0, maxCombo: 0,
+  breathAt: 0, breathCount: 0, phase: 0, kickAnim: 0, laneShake: 0,
+  starter: "", lastFinishWall: false, strobeAt: 0
+};
+
+function viewportSize() {
+  const vv = window.visualViewport;
+  W = Math.max(320, Math.floor(vv ? vv.width : window.innerWidth));
+  H = Math.max(520, Math.floor(vv ? vv.height : window.innerHeight));
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.floor(W * DPR);
+  canvas.height = Math.floor(H * DPR);
+  canvas.style.width = W + "px";
+  canvas.style.height = H + "px";
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener("resize", viewportSize, { passive: true });
+if (window.visualViewport) window.visualViewport.addEventListener("resize", viewportSize, { passive: true });
+viewportSize();
+
+function safeAudio() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!audioCtx) audioCtx = new AC();
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+    return audioCtx;
+  } catch (e) { return null; }
+}
+function tone(freq, dur, type = "sine", vol = 0.18) {
+  try {
+    const ac = safeAudio();
+    if (!ac) return;
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ac.currentTime);
+    gain.gain.setValueAtTime(vol, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.start();
+    osc.stop(ac.currentTime + dur);
+  } catch (e) {}
+}
+function vibrate(pattern) { try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {} }
+function speak(text) {
+  try {
+    if (!window.speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "ja-JP";
+    u.rate = 1.05;
+    u.pitch = 1.0;
+    u.volume = 0.75;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+function whistle(dur) {
+  try {
+    const ac = safeAudio();
+    if (!ac) return;
+    const t0 = ac.currentTime;
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    const lfo = ac.createOscillator();
+    const lfoGain = ac.createGain();
+    osc.type = "triangle";
+    osc.frequency.value = 2350;
+    lfo.type = "sine";
+    lfo.frequency.value = 24;
+    lfoGain.gain.value = 130;
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(0.16, t0 + 0.03);
+    gain.gain.setValueAtTime(0.16, t0 + Math.max(0.05, dur - 0.06));
+    gain.gain.exponentialRampToValueAtTime(0.0008, t0 + dur);
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.start(t0);
+    lfo.start(t0);
+    osc.stop(t0 + dur);
+    lfo.stop(t0 + dur);
+  } catch (e) {}
+}
+function startSignal() {
+  try {
+    const ac = safeAudio();
+    if (!ac) return;
+    const t0 = ac.currentTime;
+    const dur = 0.55;
+    const gain = ac.createGain();
+    gain.gain.setValueAtTime(0.28, t0);
+    gain.gain.setValueAtTime(0.28, t0 + dur - 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    gain.connect(ac.destination);
+    [1000, 1500].forEach((freq, i) => {
+      const osc = ac.createOscillator();
+      osc.type = i === 0 ? "square" : "sine";
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      osc.start(t0);
+      osc.stop(t0 + dur);
+    });
+  } catch (e) {}
+  vibrate([0, 110]);
+}
+function shortWhistle() { whistle(.16); setTimeout(() => whistle(.16), 300); }
+function longWhistle() { whistle(1.2); }
+function startBeep() { startSignal(); }
+function badBuzz() { tone(150, .35, "sawtooth", .22); setTimeout(() => tone(110, .38, "sawtooth", .20), 170); }
+
+function show(id) {
+  ["title", "falseStart", "result"].forEach(x => $(x).classList.add("hidden"));
+  if (id) $(id).classList.remove("hidden");
+  document.body.classList.toggle("playing", !id);
+}
+function setMsg(text, ms = 700, color = "#ffd45b") {
+  message.text = text;
+  message.color = color;
+  message.until = performance.now() + ms;
+}
+function clearTimers() {
+  timers.forEach(t => clearTimeout(t));
+  timers = [];
+  clearTimeout(game.pendingTimer);
+}
+function legStart() { return (game.leg - 1) * POOL; }
+function distInLeg() { return game.dist - legStart(); }
+function totalLegs() { return raceDistance / POOL; }
+function inUnderwater() { return game.dove && !game.surfaced; }
+function inSpurt() { return game.dist >= raceDistance - 10; }
+function atTurnZone() { return game.leg < totalLegs() && distInLeg() >= 22.2; }
+function atFinishZone() { return game.leg === totalLegs() && game.dist >= raceDistance - 1.4; }
+// ヒント表示(Zone)は手前から、実際のターン/ゴール成立(Wall)は壁際のみ。
+// 手前でターンさせると距離をワープ先取りできてしまうため成立は壁際に限定する
+function atTurnWall() { return game.leg < totalLegs() && distInLeg() >= 24.0; }
+function atFinishWall() { return game.leg === totalLegs() && game.dist >= raceDistance - 0.7; }
+function fmt(sec) {
+  if (sec == null || !isFinite(sec)) return "--.--";
+  const m = Math.floor(sec / 60);
+  const s = sec - m * 60;
+  return m ? `${m}:${s.toFixed(2).padStart(5, "0")}` : s.toFixed(2);
+}
+function bestKey() { return `${KEY_PREFIX}:best:${raceDistance}`; }
+function rankKey() { return `${KEY_PREFIX}:rank:${raceDistance}`; }
+
+function resetRace() {
+  clearTimers();
+  Object.assign(game, {
+    dist: 0, leg: 1, vel: 0, startAt: 0, signalAt: 0, rt: 0,
+    final: 0, split50: 0, stamina: 100, oxygen: 100, surfaced: false, dove: false,
+    pendingSide: "", pendingAt: 0, pendingTimer: 0, lastStrokeAt: 0, lastKickAt: 0,
+    strokeCount: 0, goodRhythm: 0, rhythmTotal: 0, combo: 0, maxCombo: 0,
+    breathAt: 0, breathCount: 0, phase: 0, kickAnim: 0, laneShake: 0,
+    starter: "", lastFinishWall: false, strobeAt: 0
+  });
+  particles = [];
+  rings = [];
+  setMsg("", 0);
+  keysDown = {};
+}
+function startSequence() {
+  resetRace();
+  show(null);
+  state = STATE.SHORT;
+  game.starter = "短笛";
+  shortWhistle();
+  timers.push(setTimeout(() => {
+    state = STATE.LONG;
+    game.starter = "ロングホイッスル";
+    longWhistle();
+  }, 950));
+  timers.push(setTimeout(() => {
+    state = STATE.MARKS;
+    game.starter = "Take your marks";
+    speak("Take your marks");
+  }, 2500));
+  timers.push(setTimeout(() => {
+    state = STATE.SET;
+    game.starter = "静止";
+    const delay = 700 + Math.random() * 1800;
+    timers.push(setTimeout(() => {
+      state = STATE.SWIM;
+      game.starter = "";
+      game.signalAt = performance.now();
+      game.startAt = game.signalAt;
+      game.strobeAt = game.signalAt;
+      startBeep();
+      setMsg("GO!", 700, "#3df28f");
+    }, delay));
+  }, 3300));
+}
+function disqualify(kind) {
+  if (state === STATE.DSQ || state === STATE.FINISH) return;
+  clearTimers();
+  badBuzz();
+  vibrate([80, 60, 120]);
+  state = STATE.DSQ;
+  const sub = $("dsqSub");
+  const msg = $("dsqMsg");
+  if (kind === "breakout") {
+    sub.textContent = "15m潜水ルール違反";
+    msg.textContent = "スタートまたはターン後、15mまでに浮上できませんでした。中央ボタン / Space で早めに浮上してください。";
+  } else if (kind === "turn") {
+    sub.textContent = "片手タッチ違反";
+    msg.textContent = "バタフライは平泳ぎと同じく、ターンとゴールの壁タッチが両手同時でなければ大きな違反です。壁際では左右を同時に入れてください。";
+  } else {
+    sub.textContent = "フライング";
+    msg.textContent = "電子音スタートの前に入力しました。短笛、ロングホイッスル、Take your marks のあと、合図を聞いてからスタート。";
+  }
+  show("falseStart");
+}
+function dive() {
+  if (game.dove) return;
+  game.dove = true;
+  game.rt = Math.max(0, (performance.now() - game.signalAt) / 1000);
+  const rtBonus = Math.max(.65, Math.min(1.2, 1.15 - Math.max(0, game.rt - .22)));
+  game.vel = 2.62 * rtBonus;
+  game.lastKickAt = performance.now();
+  game.breathAt = performance.now();
+  splash(0, 38, 1.25);
+  rings.push({ y: swimmerY(), r: 20, a: .7 });
+  setMsg("ドルフィンキック開始", 900, "#35d5ff");
+}
+function surface() {
+  if (!game.dove) return;
+  if (!inUnderwater()) { breathe(); return; }
+  if (distInLeg() > BREAKOUT_LIMIT) { disqualify("breakout"); return; }
+  game.surfaced = true;
+  game.oxygen = Math.min(100, game.oxygen + 18);
+  game.vel = Math.max(game.vel * .9, 1.6);
+  splash(0, 44, 1.15);
+  setMsg("浮上 - Fly rhythm", 850, "#7ee8ff");
+}
+function breathe() {
+  const now = performance.now();
+  const gap = now - game.breathAt;
+  game.breathAt = now;
+  game.breathCount++;
+  if (gap < 1250) {
+    game.vel *= .72;
+    game.stamina = Math.max(0, game.stamina - 2.5);
+    setMsg("呼吸しすぎで減速", 650, "#ffbd30");
+  } else {
+    game.oxygen = Math.min(100, game.oxygen + 30);
+    game.vel *= .92;
+    setMsg("呼吸 OK", 520, "#7ee8ff");
+  }
+  splash(0, 16, .75);
+}
+function dolphinKick(strong) {
+  if (!game.dove || state !== STATE.SWIM) return;
+  const now = performance.now();
+  const gap = now - game.lastKickAt;
+  game.lastKickAt = now;
+  if (inUnderwater()) {
+    let q;
+    const dt = gap / 1000;
+    if (dt < .1) q = .3;
+    else {
+      const err = Math.abs(dt - UW_TARGET);
+      q = err < .07 ? 1.3 : (err < .15 ? 1.0 : .6);
+    }
+    const fatigue = game.stamina > 35 ? 1 : .4 + .6 * (game.stamina / 35);
+    // 飛び込み・ターン直後はキャップ超えの高速グライド中。キックで減速させない
+    game.vel = Math.max(game.vel, Math.min(UW_CAP, game.vel + .5 * q * fatigue));
+    game.stamina = Math.max(0, game.stamina - .5);
+    game.kickAnim = 1;
+    game.rhythmTotal++;
+    if (q >= 1.3) game.goodRhythm++;
+    wake(12, 1.05);
+    splash(0, 30, 1.0);
+    setMsg(q >= 1.3 ? "ドルフィンキック PERFECT" : "ドルフィンキック", 350, q >= 1.3 ? "#3df28f" : "#35d5ff");
+    tone(320, .06, "sine", .08);
+    return;
+  }
+
+  let boost = .11;
+  if (strong) boost += .12;
+  {
+    const afterStroke = now - game.lastStrokeAt;
+    if (afterStroke >= 170 && afterStroke <= 560) {
+      boost += .18;
+      game.goodRhythm++;
+      setMsg("キック連動", 360, "#3df28f");
+    } else if (gap < 130) {
+      boost *= .35;
+      setMsg("空打ちキック", 300, "#ffbd30");
+    }
+    game.rhythmTotal++;
+  }
+  const fatigue = game.stamina > 25 ? 1 : .55 + game.stamina / 60;
+  game.vel = Math.max(game.vel, Math.min(2.35, game.vel + boost * fatigue));
+  game.stamina = Math.max(0, game.stamina - .42);
+  game.kickAnim = 1;
+  wake(9, .9);
+  tone(260 + Math.random() * 80, .045, "triangle", .08);
+}
+function oneHandPenalty() {
+  if (!game.dove || state !== STATE.SWIM) return;
+  if (atTurnWall() || atFinishWall()) { disqualify("turn"); return; }
+  if (inUnderwater()) { dolphinKick(false); return; }
+  game.vel *= .78;
+  game.stamina = Math.max(0, game.stamina - 1.1);
+  game.combo = 0;
+  dolphinKick(false);
+  setMsg("片手だけ - 効率低下", 520, "#ffbd30");
+}
+function pairedHands(diffMs) {
+  if (!game.dove) { dive(); return; }
+  if (inUnderwater()) { surface(); return; }
+  if (atTurnWall()) { turn(diffMs); return; }
+  if (atFinishWall()) { finish(diffMs); return; }
+  const now = performance.now();
+  game.strokeCount++;
+  game.rhythmTotal++;
+  const strokeGap = now - game.lastStrokeAt;
+  const syncScore = Math.max(0, 1 - diffMs / pairWindow);
+  const rhythmScore = game.lastStrokeAt ? Math.max(0, 1 - Math.abs(strokeGap - 900) / 650) : .7;
+  const breathGap = now - game.breathAt;
+  let breathScore = 1;
+  if (breathGap > 4100) breathScore = .55;
+  else if (breathGap < 900) breathScore = .72;
+  const score = (syncScore * .48) + (rhythmScore * .34) + (breathScore * .18);
+  // 疲労は40を切ると徐々に効く。100mで滑らかなポジティブスプリットになるよう早めに開始
+  const fatigue = game.stamina > 40 ? 1 : .28 + game.stamina / 95;
+  let boost = (.48 + score * .82) * fatigue;
+  if (inSpurt()) boost *= 1.23;
+  // 両手を速く連打しても水を掴めず空回り。落ち着いたテンポこそ最速にする
+  if (game.lastStrokeAt && strokeGap < 560) {
+    boost *= .4;
+    game.stamina = Math.max(0, game.stamina - 1.6);
+    setMsg("速すぎる - 空回り", 420, "#ffbd30");
+  }
+  // ブレイクアウト直後などキャップ超えの速度をストロークで殺さず、抵抗で自然に落とす
+  game.vel = Math.max(game.vel, Math.min(inSpurt() ? 2.68 : 2.4, game.vel + boost));
+  game.stamina = Math.max(0, game.stamina - (inSpurt() ? 1.2 : 1.55));
+  game.oxygen = Math.max(0, game.oxygen - (breathGap > 3600 ? 4.5 : 2.1));
+  game.lastStrokeAt = now;
+  game.phase = 1;
+  game.laneShake = Math.min(1, game.laneShake + .22);
+  if (score > .72) {
+    game.goodRhythm++;
+    game.combo++;
+    setMsg(inSpurt() ? "全力スパート!" : "両手プル成功", 560, score > .88 ? "#3df28f" : "#ffd45b");
+    tone(score > .88 ? 740 : 520, .07, "sine", .11);
+  } else {
+    game.combo = 0;
+    game.vel *= .82;
+    setMsg("リズム崩れ - 失速", 620, "#ff4669");
+    tone(170, .13, "triangle", .12);
+  }
+  game.maxCombo = Math.max(game.maxCombo, game.combo);
+  splash(0, score > .72 ? 34 : 18, score > .72 ? 1.25 : .7);
+}
+function turn(diffMs) {
+  const wall = distInLeg();
+  const sync = Math.max(0, 1 - diffMs / pairWindow);
+  let acc = .68, label = "遠いターン";
+  if (sync < .48) { disqualify("turn"); return; }
+  if (wall >= 24.35 && sync > .68) { acc = 1.25; label = "両手同時ジャストターン"; }
+  else if (wall >= 23.3 && sync > .48) { acc = 1.0; label = "両手同時タッチターン"; }
+  game.leg++;
+  if (game.leg === 3) game.split50 = (performance.now() - game.startAt) / 1000;
+  game.dist = legStart();
+  game.vel = Math.max(1.95, 2.48 * acc);
+  game.surfaced = false;
+  game.pendingSide = "";
+  game.combo = Math.max(0, game.combo - 1);
+  game.oxygen = Math.max(28, game.oxygen - 9);
+  splash(0, 52, 1.35);
+  rings.push({ y: swimmerY(), r: 16, a: .8 });
+  setMsg(label, 900, acc > 1 ? "#3df28f" : "#ffd45b");
+  tone(acc > 1 ? 880 : 560, .13, "sine", .16);
+}
+function finish(diffMs) {
+  const sync = Math.max(0, 1 - diffMs / pairWindow);
+  if (sync < .55) { disqualify("turn"); return; }
+  game.dist = raceDistance;
+  game.final = (performance.now() - game.startAt) / 1000;
+  state = STATE.FINISH;
+  splash(0, 70, 1.5);
+  tone(880, .13, "sine", .16);
+  setTimeout(() => tone(1320, .28, "sine", .16), 120);
+  speak(`ゴール。記録は ${game.final.toFixed(2)} 秒です`);
+  showResult();
+}
+function inputSide(side) {
+  const now = performance.now();
+  if (state === STATE.SHORT || state === STATE.LONG || state === STATE.MARKS || state === STATE.SET) { disqualify("early"); return; }
+  if (state !== STATE.SWIM) return;
+  if (!game.dove) { dive(); return; }
+  if (inUnderwater()) { dolphinKick(true); return; }
+  if (!game.pendingSide) {
+    game.pendingSide = side;
+    game.pendingAt = now;
+    clearTimeout(game.pendingTimer);
+    game.pendingTimer = setTimeout(() => {
+      if (game.pendingSide) oneHandPenalty();
+      game.pendingSide = "";
+    }, pairWindow);
+    return;
+  }
+  if (game.pendingSide === side) {
+    clearTimeout(game.pendingTimer);
+    oneHandPenalty();
+    game.pendingSide = "";
+    return;
+  }
+  const diff = now - game.pendingAt;
+  clearTimeout(game.pendingTimer);
+  game.pendingSide = "";
+  pairedHands(diff);
+}
+function inputCenter() {
+  if (state === STATE.SHORT || state === STATE.LONG || state === STATE.MARKS || state === STATE.SET) { disqualify("early"); return; }
+  if (state !== STATE.SWIM) return;
+  if (!game.dove) { dive(); return; }
+  if (inUnderwater()) {
+    surface();
+  } else {
+    breathe();
+  }
+}
+
+function controls() {
+  const zoneH = Math.max(162, Math.min(230, H * .29));
+  const y = H - zoneH - Math.max(0, envBottom());
+  const centerW = Math.min(112, W * .28);
+  return { y, h: zoneH, leftW: (W - centerW) / 2, centerW };
+}
+function envBottom() { return 0; }
+function hitControl(x, y) {
+  const c = controls();
+  if (y < c.y) return "";
+  if (x < c.leftW) return "L";
+  if (x > c.leftW + c.centerW) return "R";
+  return "C";
+}
+function handlePoint(x, y) {
+  safeAudio();
+  const hit = hitControl(x, y);
+  if (hit === "L" || hit === "R") inputSide(hit);
+  else if (hit === "C") inputCenter();
+  else if (state === STATE.SHORT || state === STATE.LONG || state === STATE.MARKS || state === STATE.SET) disqualify("early");
+}
+canvas.addEventListener("touchstart", e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) handlePoint(t.clientX, t.clientY);
+}, { passive: false });
+canvas.addEventListener("pointerdown", e => {
+  if (e.pointerType === "touch") return;
+  e.preventDefault();
+  handlePoint(e.clientX, e.clientY);
+});
+window.addEventListener("keydown", e => {
+  if (e.repeat) return;
+  if (document.activeElement === $("nameInput")) return;
+  const k = e.code;
+  if (k === "KeyF" || k === "KeyJ" || k === "Space") e.preventDefault();
+  keysDown[k] = performance.now();
+  if (k === "Space") { inputCenter(); return; }
+  if (k === "KeyF" || k === "KeyJ") {
+    const other = k === "KeyF" ? "KeyJ" : "KeyF";
+    if (!inUnderwater() && keysDown[other] && Math.abs(keysDown[k] - keysDown[other]) <= pairWindow) {
+      clearTimeout(game.pendingTimer);
+      game.pendingSide = "";
+      pairedHands(Math.abs(keysDown[k] - keysDown[other]));
+      keysDown.KeyF = 0;
+      keysDown.KeyJ = 0;
+    } else {
+      inputSide(k === "KeyF" ? "L" : "R");
+    }
+  }
+});
+window.addEventListener("keyup", e => { keysDown[e.code] = 0; });
+
+function swimmerY() {
+  const l = layout();
+  const span = l.poolBottom - l.poolTop;
+  const f = Math.max(0, Math.min(1, distInLeg() / POOL));
+  return game.leg % 2 ? l.poolBottom - span * f : l.poolTop + span * f;
+}
+function layout() {
+  const c = controls();
+  const top = 74;
+  return { top, poolTop: top + 18, poolBottom: c.y - 28, control: c };
+}
+function splash(dx, count, power) {
+  const y = swimmerY();
+  for (let i = 0; i < count; i++) {
+    const a = -Math.PI / 2 + (Math.random() - .5) * Math.PI * 1.4;
+    const s = (40 + Math.random() * 150) * power;
+    particles.push({
+      x: W / 2 + dx + (Math.random() - .5) * 22,
+      y,
+      vx: Math.cos(a) * s + (Math.random() - .5) * 70,
+      vy: Math.sin(a) * s,
+      r: 1.5 + Math.random() * 4.8,
+      a: .9,
+      c: Math.random() > .6 ? "#ffffff" : "#8cecff"
+    });
+  }
+}
+function wake(count, power) {
+  const y = swimmerY();
+  const dir = game.leg % 2 ? 1 : -1;
+  for (let i = 0; i < count; i++) {
+    rings.push({ y: y + dir * (10 + Math.random() * 18), r: (8 + Math.random() * 16) * power, a: .35 + Math.random() * .25 });
+  }
+}
+function update(now) {
+  const dt = Math.min(.04, (now - prev) / 1000);
+  prev = now;
+  game.phase = Math.max(0, game.phase - dt * 2.7);
+  game.kickAnim = Math.max(0, game.kickAnim - dt * 4.8);
+  game.laneShake = Math.max(0, game.laneShake - dt * 2.5);
+  if (state === STATE.SWIM && game.dove) {
+    const underwater = inUnderwater();
+    // 水上抵抗を抑えてストローク間の滑走を安定させる(高抵抗だと連打がリズムより速くなる)
+    const drag = underwater ? .46 : .58;
+    game.vel *= Math.exp(-drag * dt);
+    if (game.oxygen <= 0) {
+      game.vel *= Math.exp(-1.1 * dt);
+      game.stamina = Math.max(0, game.stamina - 9 * dt);
+      if (Math.random() < .08) setMsg("酸欠", 240, "#ff4669");
+    }
+    if (game.stamina <= 0) game.vel *= Math.exp(-.82 * dt);
+    game.dist += game.vel * dt;
+    if (underwater) game.oxygen = Math.max(0, game.oxygen - 8.5 * dt);
+    else {
+      game.oxygen = Math.max(0, game.oxygen - 2.1 * dt);
+      if (performance.now() - game.breathAt > 5200) game.oxygen = Math.max(0, game.oxygen - 9 * dt);
+    }
+    if (underwater && distInLeg() >= BREAKOUT_LIMIT) { disqualify("breakout"); return; }
+    if (game.leg < totalLegs() && distInLeg() >= POOL) {
+      game.dist = legStart() + POOL - .05;
+      game.vel *= .35;
+      setMsg("壁! 両手タッチ", 450, "#ff4669");
+    }
+    if (game.leg === totalLegs() && game.dist >= raceDistance) {
+      game.dist = raceDistance - .04;
+      game.vel *= .18;
+      setMsg("FINISH 両手タッチ", 450, "#ffd45b");
+    }
+    if (Math.random() < game.vel * dt * .7) wake(1, .42);
+  }
+  particles.forEach(p => {
+    p.vy += 210 * dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.a -= 1.8 * dt;
+  });
+  particles = particles.filter(p => p.a > 0);
+  rings.forEach(r => { r.r += 28 * dt; r.a -= .55 * dt; });
+  rings = rings.filter(r => r.a > 0);
+}
+function drawPool(l, now) {
+  const laneW = Math.min(330, W * .72);
+  const lx = (W - laneW) / 2 + Math.sin(now / 80) * game.laneShake * 3;
+  const water = ctx.createLinearGradient(lx, 0, lx + laneW, 0);
+  water.addColorStop(0, "#082844");
+  water.addColorStop(.5, "#0d5b85");
+  water.addColorStop(1, "#06243f");
+  ctx.fillStyle = water;
+  ctx.fillRect(lx, l.poolTop, laneW, l.poolBottom - l.poolTop);
+  ctx.strokeStyle = "rgba(126,232,255,.16)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(lx, l.poolTop, laneW, l.poolBottom - l.poolTop);
+  ctx.fillStyle = "#d7e0e6";
+  ctx.fillRect(lx - 10, l.poolTop - 12, laneW + 20, 12);
+  ctx.fillRect(lx - 10, l.poolBottom, laneW + 20, 12);
+  ctx.fillStyle = "#ff4669";
+  ctx.fillRect(lx, l.poolTop - 4, laneW, 4);
+  ctx.fillRect(lx, l.poolBottom, laneW, 4);
+  ctx.strokeStyle = "rgba(255,255,255,.06)";
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 5; i++) {
+    const x = lx + laneW * i / 5;
+    ctx.beginPath();
+    ctx.moveTo(x, l.poolTop);
+    ctx.lineTo(x, l.poolBottom);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "rgba(2,9,22,.42)";
+  ctx.fillRect(W / 2 - 4, l.poolTop, 8, l.poolBottom - l.poolTop);
+  const span = l.poolBottom - l.poolTop;
+  for (let m = 5; m < POOL; m += 5) {
+    const f = m / POOL;
+    const y = game.leg % 2 ? l.poolBottom - span * f : l.poolTop + span * f;
+    ctx.fillStyle = m === BREAKOUT_LIMIT ? "rgba(255,70,105,.82)" : "rgba(255,255,255,.16)";
+    ctx.fillRect(lx, y - (m === BREAKOUT_LIMIT ? 2 : 1), laneW, m === BREAKOUT_LIMIT ? 4 : 2);
+    if (m === BREAKOUT_LIMIT && inUnderwater()) {
+      ctx.fillStyle = "#ff9fb1";
+      ctx.font = "bold 11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("15m", W / 2, y + (game.leg % 2 ? 15 : -7));
+    }
+  }
+  if (atTurnZone() || atFinishZone()) {
+    const wallY = game.leg % 2 ? l.poolTop : l.poolBottom;
+    ctx.fillStyle = `rgba(255, 189, 48, ${.16 + .08 * Math.sin(now / 80)})`;
+    ctx.fillRect(lx, game.leg % 2 ? l.poolTop : l.poolBottom - 42, laneW, 42);
+    ctx.fillStyle = "#ffd45b";
+    ctx.font = "bold 15px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("両手タッチ", W / 2, game.leg % 2 ? wallY + 22 : wallY - 18);
+  }
+  return { lx, laneW };
+}
+function drawSwimmer(now) {
+  if (!(state === STATE.SWIM || state === STATE.FINISH)) return;
+  const y = swimmerY();
+  const u = Math.max(2.1, Math.min(3.4, W / 118));
+  const dir = game.leg % 2 ? 0 : Math.PI;
+  ctx.save();
+  ctx.translate(W / 2, y);
+  ctx.rotate(dir);
+  const bob = Math.sin(now / 130) * 1.5 * u + game.kickAnim * 2.8 * u;
+  ctx.translate(0, bob);
+  if (inUnderwater()) {
+    ctx.shadowColor = "#35d5ff";
+    ctx.shadowBlur = 14;
+    ctx.strokeStyle = "#f4c49a";
+    ctx.lineWidth = 3.2 * u;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(-4 * u, -2 * u);
+    ctx.quadraticCurveTo(-1.5 * u, -15 * u, 0, -21 * u);
+    ctx.moveTo(4 * u, -2 * u);
+    ctx.quadraticCurveTo(1.5 * u, -15 * u, 0, -21 * u);
+    ctx.stroke();
+  } else {
+    const ph = 1 - game.phase;
+    for (const s of [-1, 1]) {
+      let hx, hy, mx, my;
+      if (game.phase > 0) {
+        const p = ph;
+        const angle = (-62 + p * 142) * Math.PI / 180;
+        const len = (10 + Math.sin(p * Math.PI) * 2.5) * u;
+        hx = s * (4 * u + Math.cos(angle) * len);
+        hy = -2 * u + Math.sin(angle) * len;
+        mx = s * (3 * u + Math.cos(angle - .25) * len * .55);
+        my = -2 * u + Math.sin(angle - .25) * len * .55;
+      } else {
+        const wing = Math.sin(now / 170) * 3 * u;
+        hx = s * (11 * u + wing);
+        hy = -7 * u;
+        mx = s * 8 * u;
+        my = -12 * u;
+      }
+      ctx.strokeStyle = game.phase > .42 ? "#b88969" : "#f4c49a";
+      ctx.lineWidth = 3.6 * u;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(s * 3.8 * u, -2.5 * u);
+      ctx.quadraticCurveTo(mx, my, hx, hy);
+      ctx.stroke();
+    }
+  }
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "#102a42";
+  ctx.beginPath();
+  ctx.ellipse(0, 3 * u, 5.5 * u, 12.5 * u, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#f4c49a";
+  ctx.lineWidth = 3 * u;
+  ctx.lineCap = "round";
+  const k = Math.sin(now / 80) * game.kickAnim * 6 * u;
+  ctx.beginPath();
+  ctx.moveTo(-1.8 * u, 12 * u);
+  ctx.quadraticCurveTo(-4 * u, 17 * u + k, -2.5 * u, 21 * u);
+  ctx.moveTo(1.8 * u, 12 * u);
+  ctx.quadraticCurveTo(4 * u, 17 * u - k, 2.5 * u, 21 * u);
+  ctx.stroke();
+  ctx.fillStyle = "#ffd45b";
+  ctx.beginPath();
+  ctx.arc(0, -8 * u, 4.7 * u, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#06111c";
+  ctx.fillRect(-3 * u, -9 * u, 6 * u, 1.6 * u);
+  ctx.restore();
+}
+function drawHud(l, now) {
+  ctx.fillStyle = "#030d1a";
+  ctx.fillRect(0, 0, W, l.top);
+  ctx.strokeStyle = "#102f4d";
+  ctx.strokeRect(0, 0, W, l.top);
+  let t = null;
+  if (state === STATE.SWIM) t = (performance.now() - game.startAt) / 1000;
+  if (state === STATE.FINISH) t = game.final;
+  ctx.fillStyle = "#ffbd30";
+  ctx.font = "900 25px 'Courier New', monospace";
+  ctx.textAlign = "left";
+  ctx.fillText("⏱ " + fmt(t), 12, 32);
+  ctx.font = "12px 'Courier New', monospace";
+  ctx.fillStyle = "#9bdcff";
+  ctx.fillText(`Fly ${raceDistance}m  ${Math.floor(Math.min(raceDistance, game.dist))}m  RT ${game.dove ? "+" + game.rt.toFixed(2) : "--"}`, 13, 54);
+  ctx.textAlign = "right";
+  ctx.font = "bold 12px sans-serif";
+  ctx.fillStyle = "#edf8ff";
+  ctx.fillText(playerName || "NO NAME", W - 12, 26);
+  ctx.fillStyle = inSpurt() ? "#ff7ea0" : "#35d5ff";
+  ctx.fillText(inSpurt() ? "LAST 10m SPURT" : `${game.combo} COMBO`, W - 12, 49);
+  const bw = Math.min(150, W * .38);
+  bar(12, l.top - 11, bw, 7, game.stamina, "#3df28f", "#ff4669");
+  bar(W - bw - 12, l.top - 11, bw, 7, game.oxygen, "#35d5ff", "#ff4669");
+}
+function bar(x, y, w, h, val, ok, bad) {
+  ctx.fillStyle = "#071b2b";
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = val > 30 ? ok : bad;
+  ctx.fillRect(x, y, w * Math.max(0, Math.min(100, val)) / 100, h);
+}
+function drawControls(l) {
+  const c = l.control;
+  const labels = [
+    { x: 6, w: c.leftW - 10, title: "LEFT / F", sub: inUnderwater() ? "ドルフィン" : "同時プル" },
+    { x: c.leftW + 4, w: c.centerW - 8, title: "SPACE", sub: inUnderwater() ? "浮上" : "呼吸" },
+    { x: c.leftW + c.centerW + 4, w: c.leftW - 10, title: "RIGHT / J", sub: inUnderwater() ? "ドルフィン" : "同時プル" }
+  ];
+  labels.forEach((z, i) => {
+    const active = inSpurt();
+    ctx.fillStyle = i === 1 ? "#092338" : active ? "#250b18" : "#061727";
+    ctx.fillRect(z.x, c.y + 6, z.w, c.h - 12);
+    ctx.strokeStyle = i === 1 ? "#ffbd30" : active ? "#ff4669" : "#1d6b99";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(z.x, c.y + 6, z.w, c.h - 12);
+    ctx.fillStyle = i === 1 ? "#ffd45b" : "#edf8ff";
+    ctx.font = "900 15px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(z.title, z.x + z.w / 2, c.y + c.h / 2 - 7);
+    ctx.fillStyle = i === 1 ? "#ffe7a5" : "#7ee8ff";
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText(z.sub, z.x + z.w / 2, c.y + c.h / 2 + 16);
+  });
+}
+function drawStarter() {
+  if (state < STATE.SHORT || state > STATE.SET) return;
+  ctx.fillStyle = "rgba(2,9,22,.48)";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+  ctx.font = "900 26px sans-serif";
+  ctx.fillText(game.starter, W / 2, H * .36);
+  ctx.font = "bold 13px sans-serif";
+  ctx.fillStyle = "#9bdcff";
+  ctx.fillText(state === STATE.SET ? "電子音「ピーッ」で飛び込め!" : "合図前入力はフライング", W / 2, H * .36 + 30);
+}
+function draw(now) {
+  const l = layout();
+  ctx.fillStyle = "#020916";
+  ctx.fillRect(0, 0, W, H);
+  drawPool(l, now);
+  rings.forEach(r => {
+    ctx.globalAlpha = Math.max(0, r.a);
+    ctx.strokeStyle = "#8cecff";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(W / 2, r.y, r.r * 1.5, r.r * .45, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+  drawSwimmer(now);
+  particles.forEach(p => {
+    ctx.globalAlpha = Math.max(0, p.a);
+    ctx.fillStyle = p.c;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  if (inUnderwater()) {
+    ctx.fillStyle = "rgba(20, 152, 230, .13)";
+    ctx.fillRect(0, l.poolTop, W, l.poolBottom - l.poolTop);
+  }
+  drawHud(l, now);
+  drawControls(l);
+  if (message.text && now < message.until) {
+    ctx.fillStyle = message.color;
+    ctx.font = "900 20px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(message.text, W / 2, l.control.y - 36);
+  }
+  drawStarter();
+  if (state === STATE.SWIM && !game.dove) {
+    ctx.fillStyle = "#3df28f";
+    ctx.font = "900 24px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("スタート!", W / 2, H * .38);
+  }
+  // スタート号砲の全画面ストロボ閃光
+  if (game.strobeAt) {
+    const k = 1 - (now - game.strobeAt) / 320;
+    if (k > 0) {
+      ctx.globalAlpha = Math.max(0, k * 0.7);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+function loop(now) {
+  update(now);
+  draw(now);
+  raf = requestAnimationFrame(loop);
+}
+raf = requestAnimationFrame(loop);
+
+// 公開前検証用の読み取り専用ハンドル。通常プレイには影響しません。
+window.__flyDebug = {
+  get stateName() { return Object.keys(STATE).find(k => STATE[k] === state) || String(state); },
+  get raceDistance() { return raceDistance; },
+  get leg() { return game.leg; },
+  get dist() { return game.dist; },
+  get distInLeg() { return distInLeg(); },
+  get vel() { return game.vel; },
+  get underwater() { return inUnderwater(); },
+  get dove() { return game.dove; },
+  get surfaced() { return game.surfaced; },
+  get stamina() { return game.stamina; },
+  get oxygen() { return game.oxygen; },
+  get combo() { return game.combo; },
+  get maxCombo() { return game.maxCombo; },
+  get rt() { return game.rt; },
+  get final() { return game.final; },
+  get split50() { return game.split50; },
+  get rhythmPct() { return game.rhythmTotal ? Math.round(game.goodRhythm / game.rhythmTotal * 100) : 0; },
+  get pairWindow() { return pairWindow; },
+  get canvas() { return { W, H, DPR }; }
+};
+
+function getRanks() {
+  try {
+    const rows = JSON.parse(storage.get(rankKey()) || "[]");
+    return Array.isArray(rows) ? rows.filter(r => r && typeof r.time === "number").slice(0, 10) : [];
+  } catch (e) { return []; }
+}
+function saveRank() {
+  const rows = getRanks();
+  rows.push({ name: playerName || "NO NAME", time: game.final, rt: game.rt, date: new Date().toISOString().slice(0, 10) });
+  rows.sort((a, b) => a.time - b.time);
+  storage.set(rankKey(), JSON.stringify(rows.slice(0, 10)));
+  return rows.slice(0, 10);
+}
+function rankLabel(t) {
+  if (raceDistance === 50) {
+    if (t < 24.0) return "世界決勝級のバタフライ";
+    if (t < 27.0) return "全国表彰台レベル";
+    if (t < 31.0) return "県大会上位レベル";
+    if (t < 38.0) return "クラブエース級";
+    return "完泳ナイスフライ";
+  }
+  if (t < 52.5) return "世界決勝級のバタフライ";
+  if (t < 58.5) return "全国表彰台レベル";
+  if (t < 67.0) return "県大会上位レベル";
+  if (t < 82.0) return "クラブエース級";
+  return "100m完泳ナイスフライ";
+}
+function resultText() {
+  const rhythm = game.rhythmTotal ? Math.round(game.goodRhythm / game.rhythmTotal * 100) : 0;
+  return `超・バタフライ タイムアタック\n${playerName || "NO NAME"}選手\n${raceDistance}m Fly: ${fmt(game.final)}秒\nRT: +${game.rt.toFixed(2)} / リズム評価: ${rhythm}% / 最大コンボ: ${game.maxCombo}\n#バタフライタイムアタック\n${location.href}`;
+}
+function showResult() {
+  const saved = parseFloat(storage.get(bestKey()));
+  const isNew = !isFinite(saved) || game.final < saved;
+  if (isNew) storage.set(bestKey(), String(game.final));
+  personalBest = isNew ? game.final : saved;
+  const ranks = saveRank();
+  const rhythm = game.rhythmTotal ? Math.round(game.goodRhythm / game.rhythmTotal * 100) : 0;
+  $("rankText").textContent = rankLabel(game.final);
+  $("newBest").classList.toggle("hidden", !isNew);
+  $("finalTime").textContent = fmt(game.final) + "s";
+  $("rRt").textContent = "+" + game.rt.toFixed(2) + "s";
+  $("rSplit").textContent = raceDistance === 100 && game.split50 ? fmt(game.split50) + "s" : "-";
+  $("rRhythm").textContent = rhythm + "%";
+  $("rCombo").textContent = String(game.maxCombo);
+  $("rankingList").innerHTML = ranks.map((r, i) => `<li><span>${i + 1}. ${escapeHtml(r.name)}</span><span>${fmt(r.time)}s</span></li>`).join("");
+  show("result");
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+function updateBest() {
+  const v = parseFloat(storage.get(bestKey()));
+  personalBest = isFinite(v) ? v : null;
+  $("bestLabel").textContent = personalBest ? `自己ベスト: ${fmt(personalBest)}s` : "自己ベスト: 未登録";
+}
+function setOpt(cls, dataName, val) {
+  document.querySelectorAll("." + cls).forEach(b => b.classList.toggle("on", b.dataset[dataName] === String(val)));
+}
+
+$("startBtn").addEventListener("click", () => {
+  safeAudio();
+  playerName = $("nameInput").value.trim();
+  if (!playerName) {
+    $("nameInput").placeholder = "名前を入力してください";
+    $("nameInput").focus();
+    return;
+  }
+  storage.set(`${KEY_PREFIX}:name`, playerName);
+  startSequence();
+});
+$("retryBtn").addEventListener("click", startSequence);
+$("againBtn").addEventListener("click", startSequence);
+$("dsqHomeBtn").addEventListener("click", () => { state = STATE.TITLE; updateBest(); show("title"); });
+$("homeBtn").addEventListener("click", () => { state = STATE.TITLE; updateBest(); show("title"); });
+$("copyBtn").addEventListener("click", async () => {
+  const text = resultText();
+  try {
+    if (!navigator.clipboard) throw new Error("clipboard");
+    await navigator.clipboard.writeText(text);
+    $("copied").textContent = "コピーしました";
+  } catch (e) {
+    $("copied").textContent = text;
+  }
+  setTimeout(() => { if ($("copied").textContent === "コピーしました") $("copied").textContent = ""; }, 2200);
+});
+$("shareBtn").addEventListener("click", () => {
+  const url = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(resultText());
+  try { window.open(url, "_blank", "noopener,noreferrer"); } catch (e) { location.href = url; }
+});
+document.querySelectorAll(".distOpt").forEach(b => b.addEventListener("click", () => {
+  raceDistance = parseInt(b.dataset.dist, 10);
+  storage.set(`${KEY_PREFIX}:dist`, String(raceDistance));
+  setOpt("distOpt", "dist", raceDistance);
+  updateBest();
+}));
+document.querySelectorAll(".levelOpt").forEach(b => b.addEventListener("click", () => {
+  pairWindow = parseInt(b.dataset.window, 10);
+  storage.set(`${KEY_PREFIX}:window`, String(pairWindow));
+  setOpt("levelOpt", "window", pairWindow);
+}));
+$("nameInput").addEventListener("input", () => {
+  playerName = $("nameInput").value.trim();
+});
+
+(function init() {
+  const name = storage.get(`${KEY_PREFIX}:name`);
+  if (name) { playerName = name; $("nameInput").value = name; }
+  const dist = parseInt(storage.get(`${KEY_PREFIX}:dist`), 10);
+  if (dist === 100) raceDistance = 100;
+  const win = parseInt(storage.get(`${KEY_PREFIX}:window`), 10);
+  if ([185, 130, 85].includes(win)) pairWindow = win;
+  setOpt("distOpt", "dist", raceDistance);
+  setOpt("levelOpt", "window", pairWindow);
+  updateBest();
+})();
+
+})();
+</script>
+</body>
+</html>

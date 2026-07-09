@@ -1,0 +1,1677 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    script-src 'unsafe-inline';
+    style-src 'unsafe-inline';
+    img-src data: https:;
+    font-src https:;
+    connect-src https://esm.sh https://unpkg.com https://cdnjs.cloudflare.com;
+    object-src 'none';
+    base-uri 'none';
+  ">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>超・背泳ぎ タイムアタック</title>
+<meta name="description" content="自由形を上向きにした動きで遊ぶ、1ファイル完結の背泳ぎタイムアタックゲーム。">
+<meta property="og:title" content="超・背泳ぎ タイムアタック">
+<meta property="og:description" content="壁キックスタート、バサロ、15m浮上、上向き交互ストロークで記録を狙え。">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  /* 公開用: Tailwind CDNなしで動く最小ユーティリティ */
+  .relative{position:relative}.absolute{position:absolute}.inset-0{inset:0}.block{display:block}.hidden{display:none!important}
+  .flex{display:flex}.grid{display:grid}.flex-col{flex-direction:column}.flex-1{flex:1 1 0%}.items-center{align-items:center}.justify-between{justify-content:space-between}
+  .grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .gap-1{gap:.25rem}.gap-1\.5{gap:.375rem}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-y-1{row-gap:.25rem}.space-y-1>*+*{margin-top:.25rem}
+  .w-full{width:100%}.w-5{width:1.25rem}.h-3{height:.75rem}.max-w-md{max-width:28rem}.max-w-\[120px\]{max-width:120px}.max-h-\[120px\]{max-height:120px}.max-h-\[220px\]{max-height:220px}
+  .mx-auto{margin-left:auto;margin-right:auto}.my-auto{margin-top:auto;margin-bottom:auto}.mt-3\.5{margin-top:.875rem}
+  .mb-0\.5{margin-bottom:.125rem}.mb-1{margin-bottom:.25rem}.mb-1\.5{margin-bottom:.375rem}.mb-2{margin-bottom:.5rem}.mb-2\.5{margin-bottom:.625rem}.mb-3{margin-bottom:.75rem}.mb-3\.5{margin-bottom:.875rem}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}
+  .p-2\.5{padding:.625rem}.p-3{padding:.75rem}.p-3\.5{padding:.875rem}.p-4{padding:1rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-2\.5{padding-left:.625rem;padding-right:.625rem}.px-3{padding-left:.75rem;padding-right:.75rem}.px-4{padding-left:1rem;padding-right:1rem}
+  .py-1{padding-top:.25rem;padding-bottom:.25rem}.py-1\.5{padding-top:.375rem;padding-bottom:.375rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.py-2\.5{padding-top:.625rem;padding-bottom:.625rem}.py-3{padding-top:.75rem;padding-bottom:.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}.py-6{padding-top:1.5rem;padding-bottom:1.5rem}.py-8{padding-top:2rem;padding-bottom:2rem}.pr-1{padding-right:.25rem}
+  .overflow-hidden{overflow:hidden}.overflow-y-auto{overflow-y:auto}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pointer-events-none{pointer-events:none}.outline-none{outline:none}.underline{text-decoration:underline}
+  .rounded-md{border-radius:.375rem}.rounded-lg{border-radius:.5rem}.rounded-xl{border-radius:.75rem}.rounded-full{border-radius:9999px}
+  .border{border-width:1px;border-style:solid}.border-t{border-top-width:1px;border-top-style:solid}.border-slate-700{border-color:#334155}.border-slate-800{border-color:#1e293b}.border-slate-800\/50{border-color:rgba(30,41,59,.5)}.border-cyan-400{border-color:#22d3ee}.border-cyan-700{border-color:#0e7490}.border-cyan-800\/20{border-color:rgba(21,94,117,.2)}.border-cyan-800\/40{border-color:rgba(21,94,117,.4)}.border-red-900\/60{border-color:rgba(127,29,29,.6)}
+  .bg-black{background:#000}.bg-slate-800{background:#1e293b}.bg-slate-900{background:#0f172a}.bg-slate-900\/90{background:rgba(15,23,42,.9)}.bg-slate-950{background:#020617}.bg-slate-950\/90{background:rgba(2,6,23,.9)}.bg-cyan-900{background:#164e63}.bg-cyan-950{background:#083344}.bg-cyan-950\/30{background:rgba(8,51,68,.3)}.bg-cyan-950\/50{background:rgba(8,51,68,.5)}.bg-red-950\/40{background:rgba(69,10,10,.4)}.bg-sky-500{background:#0ea5e9}
+  .bg-gradient-to-r{background-image:linear-gradient(to right,var(--tw-gradient-from,#22d3ee),var(--tw-gradient-to,#3b82f6))}.from-cyan-400{--tw-gradient-from:#22d3ee}.to-blue-500{--tw-gradient-to:#3b82f6}.bg-clip-text{-webkit-background-clip:text;background-clip:text}
+  .text-transparent{color:transparent}.text-white{color:#fff}.text-slate-950{color:#020617}.text-slate-500{color:#64748b}.text-slate-400{color:#94a3b8}.text-slate-300{color:#cbd5e1}.text-slate-200{color:#e2e8f0}.text-cyan-100{color:#cffafe}.text-cyan-300{color:#67e8f9}.text-cyan-400{color:#22d3ee}.text-emerald-400{color:#34d399}.text-amber-300{color:#fcd34d}.text-amber-400{color:#fbbf24}.text-amber-400\/80{color:rgba(251,191,36,.8)}.text-amber-600{color:#d97706}.text-red-200{color:#fecaca}.text-red-400{color:#f87171}.text-red-500{color:#ef4444}.text-rose-500{color:#f43f5e}
+  .text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}.text-\[9px\]{font-size:9px}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}.text-xs{font-size:.75rem;line-height:1rem}.text-sm{font-size:.875rem;line-height:1.25rem}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}
+  .font-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}.font-bold{font-weight:700}.font-extrabold{font-weight:800}.font-black{font-weight:900}.leading-relaxed{line-height:1.625}.tracking-wide{letter-spacing:.025em}.tracking-wider{letter-spacing:.05em}.tracking-widest{letter-spacing:.1em}.tracking-\[0\.2em\]{letter-spacing:.2em}
+  .opacity-60{opacity:.6}.shadow-md{box-shadow:0 4px 6px rgba(0,0,0,.25)}.transition-all{transition-property:all}.transition-colors{transition-property:color,background-color,border-color}.duration-300{transition-duration:.3s}
+  .hover\:bg-slate-700:hover{background:#334155}.hover\:bg-sky-400:hover{background:#38bdf8}.hover\:bg-cyan-900\/50:hover{background:rgba(22,78,99,.5)}.hover\:text-cyan-300:hover{color:#67e8f9}.hover\:text-slate-200:hover{color:#e2e8f0}.focus\:border-cyan-400:focus{border-color:#22d3ee}
+  .animate-pulse{animation:pulse 1.4s ease-in-out infinite}.animate-bounce{animation:bounce 1s infinite}@keyframes pulse{50%{opacity:.55}}@keyframes bounce{0%,100%{transform:translateY(-8%)}50%{transform:translateY(0)}}
+  button,input{font:inherit}button{cursor:pointer;border-color:transparent}input::placeholder{color:#64748b}
+  @media (min-width:768px){.md\:text-3xl{font-size:1.875rem;line-height:2.25rem}.md\:py-6{padding-top:1.5rem;padding-bottom:1.5rem}}
+  /* iOSでのアドレスバーを考慮した dvh (Dynamic Viewport Height) の採用 */
+  html,body { width:100%; height:100vh; height:100dvh; overflow:hidden; position:fixed; background:#030914;
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+    touch-action:none; user-select:none; -webkit-user-select:none; }
+  #game { display:block; width:100vw; height:100vh; height:100dvh; touch-action:none; }
+
+  /* 縦スクロールとFlexboxのはみ出しバグを解消し、セーフエリア(iOSの余白)を確保 */
+  .overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:flex-start; background:rgba(2, 8, 20, 0.96); color:#e8f4ff; z-index:10;
+    padding: max(16px, env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom)) 20px; text-align:center;
+    overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; }
+  .hidden { display:none !important; }
+
+  /* ネオンプールスタイル */
+  .neon-border { border: 2px solid #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.4); }
+  .neon-text { text-shadow: 0 0 10px rgba(0, 240, 255, 0.6); }
+  .neon-btn {
+    background: linear-gradient(135deg, #00f0ff, #0072ff);
+    box-shadow: 0 4px 15px rgba(0, 240, 255, 0.4);
+    transition: all 0.1s ease;
+  }
+  .neon-btn:active { transform: scale(0.96); box-shadow: 0 2px 5px rgba(0, 240, 255, 0.2); }
+
+  /* 点滅アニメーション */
+  @keyframes danger-pulse {
+    0%, 100% { box-shadow: inset 0 0 20px rgba(255, 0, 80, 0); }
+    50% { box-shadow: inset 0 0 40px rgba(255, 0, 80, 0.6); }
+  }
+  .low-oxygen-alert { animation: danger-pulse 1s infinite; }
+
+  /* backstroke-ui-polish */
+  #toggleRuleBtn {
+    appearance: none;
+    border: 1px solid rgba(21, 94, 117, .52);
+    background: rgba(8, 51, 68, .58);
+    color: #67e8f9;
+    border-radius: 8px;
+    box-shadow: none;
+  }
+  #showLdrBtn {
+    appearance: none;
+    width: auto;
+    display: inline-block;
+    margin: 12px auto 0;
+    padding: 4px 8px;
+    border: 0;
+    background: transparent;
+    color: #22d3ee;
+    text-decoration: underline;
+    box-shadow: none;
+  }
+  .distOpt, .tolOpt, .chOpt {
+    line-height: 1.25;
+    white-space: normal;
+  }
+  .tolOpt {
+    min-height: 40px;
+    padding-left: 5px;
+    padding-right: 5px;
+    font-size: 11px;
+  }
+  #titlePanel { padding-top: 8px; padding-bottom: 8px; }
+  @media (max-width: 380px) {
+    .tolOpt { font-size: 10px; }
+    #titlePanel h1 { font-size: 1.35rem; line-height: 1.6rem; }
+  }
+  /* end-backstroke-ui-polish */</style>
+</head>
+<body class="relative">
+
+<!-- ゲームキャンバス -->
+<canvas id="game" class="absolute inset-0"></canvas>
+
+<!-- 画面外周の酸欠アラートエフェクト -->
+<div id="oxygenAlert" class="absolute inset-0 pointer-events-none transition-all duration-300"></div>
+
+<!-- タイトル画面 -->
+<div id="title" class="overlay">
+  <div class="max-w-md w-full px-2 py-2 md:py-6 my-auto" id="titlePanel">
+    <h1 class="text-2xl md:text-3xl font-extrabold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-0.5">超・背泳ぎ タイムアタック</h1>
+    <div class="text-[9px] tracking-[0.2em] text-cyan-300 font-bold mb-3">SUPER BACKSTROKE TIME ATTACK 🏊🔥</div>
+
+    <!-- 距離・設定 -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 mb-2 text-left">
+      <div class="text-[10px] text-slate-400 font-bold mb-1">距離設定</div>
+      <div class="flex gap-2 mb-2">
+        <button class="opt distOpt flex-1 py-1 px-3 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700 bg-cyan-900 text-cyan-300 border-cyan-400" data-dist="50">50m (ターン1回)</button>
+        <button class="opt distOpt flex-1 py-1 px-3 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700" data-dist="100">100m (ターン3回)</button>
+      </div>
+
+      <div class="text-[10px] text-slate-400 font-bold mb-1">選手クラス (リズム判定の厳しさ)</div>
+      <div class="flex gap-1.5">
+        <button class="opt tolOpt flex-1 py-1 px-2 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700" data-tol="160">一般（やさしい）</button>
+        <button class="opt tolOpt flex-1 py-1 px-2 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 bg-cyan-900 text-cyan-300 border-cyan-400" data-tol="110">県大会（ふつう）</button>
+        <button class="opt tolOpt flex-1 py-1 px-2 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700" data-tol="70">全国（シビア）</button>
+      </div>
+    </div>
+
+    <!-- ルール解説 (アコーディオン) -->
+    <div class="bg-cyan-950/30 border border-cyan-800/40 rounded-xl mb-2 text-left overflow-hidden">
+      <button id="toggleRuleBtn" class="w-full flex justify-between items-center py-1.5 px-3 text-[11px] font-bold text-cyan-300 bg-cyan-950/50 hover:bg-cyan-900/50 transition-colors outline-none">
+        <span class="flex items-center gap-1">📖 遊び方・ルールを見る</span>
+        <span id="ruleArrow" class="text-[9px]">▼</span>
+      </button>
+      <div id="ruleContent" class="p-2.5 text-[11px] text-cyan-100 space-y-1 leading-relaxed hidden border-t border-cyan-800/20">
+        <div>🔵 <b>本格スタート</b>: 短笛のあとロングホイッスルで入水。<b>Take your marks</b>で静止し、電子音で<b>壁を蹴ってスタート</b>。合図前の入力はフライング失格。</div>
+        <div>🏊 <b>泳ぎの考え方</b>: 背泳ぎは<b>自由形を上向きにした動き</b>。左右の腕を交互に回し、体の軸をまっすぐ保つほど進みます。</div>
+        <div>🐬 <b>バサロ</b>: スタート直後とターン後は水中。左右ゾーンをリズムよく連打して加速し、中央の<b>浮上</b>で15m以内に水面へ。</div>
+        <div>↻ <b>姿勢</b>: 水上で中央ボタンを押すと軸を戻します。押しすぎると少し減速するので、フォームが崩れた時だけ使うのがコツ。</div>
+        <div>🚩 <b>5mフラッグ</b>: 壁が近づいたらターン準備。壁際で入力するとクイックターンが決まり、再びバサロへ入ります。</div>
+        <div>🔥 <b>ラスト10m</b>: 姿勢よりも腕回し。左右を全力で回して押し切れ！</div>
+      </div>
+    </div>
+
+    <!-- キャラクター選択 -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 mb-2 text-left">
+      <div class="text-[10px] text-slate-400 font-bold mb-1">出場スイマー</div>
+      <div class="grid grid-cols-3 gap-2">
+        <button class="opt chOpt py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 bg-cyan-900 text-cyan-300 border-cyan-400" data-ch="human">🏊 人間</button>
+        <button class="opt chOpt py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-300" data-ch="dog">🐕 イヌ</button>
+        <button class="opt chOpt py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-300" data-ch="cat">🐈 ネコ</button>
+      </div>
+    </div>
+
+    <!-- 名前入力 -->
+    <div class="w-full text-left mb-2.5">
+      <label class="block text-[10px] text-slate-400 font-bold mb-0.5">選手名 (記録保存用)</label>
+      <input id="nameInput" type="text" maxlength="10" placeholder="選手名を入力してください" class="w-full text-center text-sm font-bold py-1.5 bg-slate-950 border border-slate-700 text-cyan-300 rounded-lg outline-none focus:border-cyan-400 transition-all">
+    </div>
+
+    <div id="bestLabel" class="text-xs text-amber-400 font-bold mb-2.5"></div>
+
+    <!-- スタートボタン -->
+    <button id="startBtn" class="w-full py-3 mb-2 rounded-full text-slate-950 text-base font-black tracking-widest neon-btn">レース開始</button>
+
+    <div class="text-[10px] leading-relaxed text-slate-400 mb-1">スマホ: 左右タップ / 中央で浮上・姿勢　PC: F・J / Space</div>
+
+    <!-- ランキング簡易表示切替 -->
+    <button id="showLdrBtn" class="text-[11px] text-cyan-400 underline mt-3.5 block mx-auto hover:text-cyan-300">🏆 この端末のランキングを見る</button>
+  </div>
+</div>
+
+<!-- フライング（失格） -->
+<div id="false" class="overlay hidden">
+  <div class="max-w-md w-full px-4 py-8 my-auto">
+    <div class="text-red-500 font-black tracking-wider mb-2 text-4xl animate-bounce">失 格</div>
+    <div id="fsTitle" class="text-xs tracking-widest text-red-400 mb-4">FALSE START</div>
+    <div class="bg-red-950/40 border border-red-900/60 rounded-xl p-4 mx-auto mb-6">
+      <p class="text-xs text-red-200 leading-relaxed" id="fsMsg">合図より早く動きました！背泳ぎでもフライングは一発失格です。電子音を聞いてから壁を蹴りましょう！</p>
+    </div>
+    <button id="retryBtn" class="w-full py-3 rounded-full bg-slate-800 border border-slate-700 text-slate-200 font-bold text-sm">もう一度挑戦</button>
+  </div>
+</div>
+
+<!-- リザルト ＆ ランキング -->
+<div id="result" class="overlay hidden">
+  <div class="max-w-md w-full px-4 py-4 my-auto">
+    <div id="rankBadge" class="text-emerald-400 font-extrabold text-base mb-1">🥇 県大会 上位入賞レベル！</div>
+    <div id="newBest" class="text-rose-500 font-black text-xs tracking-widest mb-1.5 animate-pulse hidden">★ 自己ベスト更新！ ★</div>
+
+    <!-- デジタル電光掲示板 -->
+    <div class="bg-black border border-slate-800 rounded-xl p-3.5 text-left font-mono text-amber-400 mb-2.5">
+      <div class="text-center text-3xl font-bold tracking-wide mb-2.5 text-amber-300 neon-text" id="finalTime">00.00</div>
+      <div class="grid grid-cols-2 gap-y-1 text-[11px] text-amber-400/80">
+        <div>反応時間(RT):</div><div class="text-right" id="rRT">-</div>
+        <div>50m通過タイム:</div><div class="text-right" id="rSplit">-</div>
+        <div>平均リズム誤差:</div><div class="text-right" id="rSync">-</div>
+        <div>最高コンボ数:</div><div class="text-right" id="rCombo">-</div>
+      </div>
+    </div>
+
+    <!-- ランキングセクション (ローカル保存) -->
+    <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3 mb-3">
+      <div class="flex items-center justify-between mb-1.5">
+        <span class="text-[10px] text-slate-400 font-bold" id="rankTitle">🏆 ローカルランキング (TOP10)</span>
+        <span class="text-[9px] text-emerald-400" id="savingStatus">記録を保存しました</span>
+      </div>
+      <div class="max-h-[120px] overflow-y-auto text-xs space-y-1 text-left pr-1" id="ldrList">
+        <!-- JSで挿入 -->
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-1.5 w-full">
+      <div class="flex gap-2">
+        <button id="againBtn" class="flex-1 py-2.5 rounded-full text-slate-950 text-sm font-bold neon-btn">もう一度泳ぐ</button>
+        <button id="shareXBtn" class="flex-1 py-2.5 rounded-full bg-sky-500 text-white font-bold text-xs shadow-md hover:bg-sky-400 transition-colors">𝕏 で自慢する</button>
+      </div>
+      <button id="copyBtn" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg font-bold">📋 コピペ用結果テキストをコピー</button>
+      <div id="copied" class="text-[10px] text-emerald-400 h-3"></div>
+      <button id="homeBtn" class="w-full py-1.5 text-slate-400 hover:text-slate-200 text-xs font-bold">タイトルへ戻る</button>
+    </div>
+  </div>
+</div>
+
+<!-- ランキング閲覧用モーダル（タイトルから遷移用） -->
+<div id="ldrModal" class="overlay hidden">
+  <div class="max-w-md w-full px-4 py-6 my-auto">
+    <h2 class="text-lg font-bold text-cyan-300 mb-2.5">🏆 ローカルハイスコアランキング</h2>
+    <div class="flex gap-2 mb-2.5">
+      <button class="flex-1 py-1 px-3 rounded-full text-xs font-bold bg-cyan-950 text-cyan-300 border border-cyan-700" id="ldrTab50">50m 背泳ぎ</button>
+      <button class="flex-1 py-1 px-3 rounded-full text-xs font-bold bg-slate-800 text-slate-400" id="ldrTab100">100m 背泳ぎ</button>
+    </div>
+    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-left text-xs space-y-1 max-h-[220px] overflow-y-auto mb-3.5" id="modalLdrList">
+      <!-- JSで挿入 -->
+    </div>
+    <button id="closeLdrBtn" class="w-full py-2.5 rounded-full bg-slate-800 border border-slate-700 text-slate-200 font-bold text-sm">閉じる</button>
+  </div>
+</div>
+
+<script>
+// ---------- ローカルでの音声読み上げ (Web Speech API) ----------
+let audioUnlocked = false;
+function unlockSpeechAudio() {
+  if (audioUnlocked) return;
+  if (window.speechSynthesis) {
+    const utterance = new SpeechSynthesisUtterance("");
+    window.speechSynthesis.speak(utterance);
+    audioUnlocked = true;
+  }
+}
+
+function speak(text) {
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "ja-JP";
+    utterance.rate = 1.05;
+    utterance.pitch = 1.0;
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
+// 軽い触覚フィードバック（対応端末のみ）
+function buzzHaptic(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
+
+// ---------- ゲームメインロジック ----------
+const cv = document.getElementById("game");
+const cx = cv.getContext("2d");
+// iOS15以前のSafariにはroundRectが無い
+if (!cx.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    this.moveTo(x + r, y);
+    this.arcTo(x + w, y, x + w, y + h, r);
+    this.arcTo(x + w, y + h, x, y + h, r);
+    this.arcTo(x, y + h, x, y, r);
+    this.arcTo(x, y, x + w, y, r);
+    this.closePath();
+    return this;
+  };
+}
+let W = 0, H = 0, DPR = 1;
+
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  // iOS Safari ではツールバー分を除いた visualViewport の実寸を使う（はみ出し防止）
+  const vv = window.visualViewport;
+  W = Math.round(vv ? vv.width : window.innerWidth);
+  H = Math.round(vv ? vv.height : window.innerHeight);
+  cv.width = W * DPR; cv.height = H * DPR;
+  cv.style.width = W + "px"; cv.style.height = H + "px";
+  cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", () => setTimeout(resize, 150));
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", resize);
+}
+resize();
+// iOS はロード直後の高さが不正確なことがあるため、読み込み後に測り直す
+window.addEventListener("load", () => { resize(); setTimeout(resize, 300); });
+
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+};
+
+// レトロWebAudioシンセ効果音 (完全独立再生)
+let AC = null;
+function ac() {
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    // iOSはバックグラウンド復帰後にsuspendedのまま音が出なくなるため毎回resume
+    if (AC.state === "suspended") AC.resume();
+  } catch (e) {}
+  return AC;
+}
+function tone(freq, dur, type, vol) {
+  try {
+    const a = ac(), o = a.createOscillator(), g = a.createGain();
+    o.type = type || "sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || 0.15, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(); o.stop(a.currentTime + dur);
+  } catch (e) {}
+}
+
+// ★ 審判のホイッスル（笛）: 高音＋細かなトリル（ビブラート）でリアルに ★
+function whistle(dur) {
+  try {
+    const a = ac(), t0 = a.currentTime;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = "triangle";
+    o.frequency.value = 2350;
+    // トリル（笛の「ピリリ」感）をLFOで付与
+    const lfo = a.createOscillator(), lg = a.createGain();
+    lfo.type = "sine"; lfo.frequency.value = 24; lg.gain.value = 130;
+    lfo.connect(lg); lg.connect(o.frequency);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.03);
+    g.gain.setValueAtTime(0.16, t0 + Math.max(0.05, dur - 0.06));
+    g.gain.exponentialRampToValueAtTime(0.0008, t0 + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(t0); lfo.start(t0);
+    o.stop(t0 + dur); lfo.stop(t0 + dur);
+  } catch (e) {}
+}
+
+// ★ 電子スタート音（オメガ式に近いクリーンで鋭いトーン「ピーッ」）＋振動 ★
+function startSignal() {
+  try {
+    const a = ac(), t0 = a.currentTime, dur = 0.55;
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.28, t0);
+    g.gain.setValueAtTime(0.28, t0 + dur - 0.05);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    g.connect(a.destination);
+    [1000, 1500].forEach((f, i) => {
+      const o = a.createOscillator();
+      o.type = i === 0 ? "square" : "sine";
+      o.frequency.value = f;
+      o.connect(g); o.start(t0); o.stop(t0 + dur);
+    });
+  } catch (e) {}
+  buzzHaptic([0, 110]);
+}
+
+const buzz = () => { tone(200, 0.4, "sawtooth", 0.2); setTimeout(() => tone(160, 0.5, "sawtooth", 0.2), 180); };
+const sndPerfect = () => { tone(660, 0.12, "sine", 0.2); setTimeout(() => tone(880, 0.15, "sine", 0.15), 60); };
+const sndOk = () => tone(440, 0.1, "sine", 0.15);
+const sndBad = () => tone(150, 0.25, "sawtooth", 0.15);
+const sndSplash = () => tone(250, 0.15, "triangle", 0.08);
+const sndBreath = () => { tone(600, 0.08, "sine", 0.1); tone(900, 0.12, "triangle", 0.1); };
+
+// ---------- ゲーム設定 ----------
+let TOL = 110;           // リズム判定許容誤差(ms)
+let CHAR = "human";
+let RACE_DIST = 50;
+const TARGET = 0.42;    // 背泳ぎの理想ストローク間隔(秒)
+
+// ---------- ゲーム状態 ----------
+const S = { TITLE:0, WHISTLE:1, MARKS:2, SET:3, SWIM:4, FINISH:5, FALSE:6 };
+let state = S.TITLE;
+let playerName = "";
+let myBest = null;
+
+const POOLLEN = 25;
+function TOTAL() { return RACE_DIST; }
+function LEGS() { return RACE_DIST / POOLLEN; }
+const UW_LIMIT = 15;          // 背泳ぎ：バサロは15mまで（超えると失格）
+const UW_TARGET = 0.26;       // バサロキックの理想間隔(秒)
+const UW_CAP = 3.4;           // 潜水中の最高速度（水上より速い＝水中バサロが最速）
+function SPURT_FROM() { return RACE_DIST - 10; }
+
+// ---------- レース実行中のパラメータ ----------
+const G = {
+  dist: 0, vel: 0, leg: 1, raceStart: 0, beepAt: 0, rt: 0,
+  split50: 0, finalTime: 0, stamina: 100, oxygen: 100,
+  lastSide: null, lastTapT: 0,
+  strokes: 0, rhythmSum: 0, rhythmN: 0, altOK: 0, combo: 0, maxCombo: 0,
+  strokeAnim: 0, strokeSide: 1, dove: false,
+  glideDone: false, msg: "", msgT: 0,
+  isBreathing: false, breathT: 0, strobeT: 0,
+  underwater: false, lastKickT: 0, wallStall: false
+};
+let particles = [];
+
+function legStartDist() { return (G.leg - 1) * POOLLEN; }
+function distInLeg() { return G.dist - legStartDist(); }
+function inSpurt() { return G.dist >= SPURT_FROM(); }
+
+function layout() {
+  const boardH = 70;
+  const zoneH = Math.max(140, H * 0.28);
+  return { boardH, zoneH, poolTop: boardH + 24, poolBottom: H - zoneH - 24 };
+}
+
+function resetRace() {
+  Object.assign(G, {
+    dist:0, vel:0, leg:1, rt:0, split50:0, finalTime:0, stamina:100, oxygen:100,
+    lastSide:null, lastTapT:0,
+    strokes:0, rhythmSum:0, rhythmN:0, altOK:0, combo:0, maxCombo:0,
+    strokeAnim:0, strokeSide:1, dove:false,
+    glideDone:false, msg:"", msgT:0,
+    isBreathing: false, breathT: 0, strobeT: 0,
+    underwater: false, lastKickT: 0, wallStall: false
+  });
+  particles = [];
+  document.getElementById("oxygenAlert").className = "absolute inset-0 pointer-events-none transition-all duration-300";
+}
+
+// ---------- 本格スタートシーケンス ----------
+// 招集の短笛 → ロングホイッスル(台上へ) → 「Take your marks」(静止) → 電子スタート音(ピッ)＋ストロボ
+let raceTimers = [];
+function clearRaceTimers() { raceTimers.forEach(id => clearTimeout(id)); raceTimers = []; }
+function T(fn, ms) { const id = setTimeout(fn, ms); raceTimers.push(id); return id; }
+
+function startSequence() {
+  resetRace();
+  clearRaceTimers();
+  state = S.WHISTLE;
+
+  // 1) 招集の短笛「ピッ・ピッ」
+  whistle(0.16);
+  T(() => whistle(0.16), 300);
+  // 2) ロングホイッスル「ピーーーッ」→ 台上へ
+  T(() => whistle(1.2), 950);
+  // 3) スターターの号令「Take your marks」→ 静止
+  T(() => { state = S.MARKS; speak("Take your marks"); }, 2500);
+  T(() => { state = S.SET; }, 3300);
+  // 4) ランダムな静止のあと、電子スタート音＋ストロボで号砲
+  const goDelay = 3300 + 700 + Math.random() * 1800; // 4000〜5800ms
+  T(() => {
+    startSignal();
+    G.beepAt = performance.now();
+    G.strobeT = G.beepAt + 320;
+    state = S.SWIM;
+    G.raceStart = G.beepAt;
+  }, goDelay);
+}
+
+// 失格の共通処理（フライング・15m潜水違反など）
+function disqualify(msg, voice, title) {
+  clearRaceTimers();
+  buzz();
+  buzzHaptic([0, 90, 60, 90]);
+  state = S.FALSE;
+  speak(voice || "失格");
+  const tEl = document.getElementById("fsTitle");
+  if (tEl) tEl.textContent = title || "DISQUALIFIED";
+  document.getElementById("fsMsg").textContent = msg;
+  show("false");
+}
+
+function falseStart() {
+  disqualify(
+    "焦ってしまいました！合図（電子音）が鳴る前に動くと一発失格です。次こそ完璧な反応を狙いましょう！",
+    "失格。フライングです",
+    "FALSE START"
+  );
+}
+
+// 反応時間(RT)のグレード判定
+function rtGrade(rt) {
+  if (rt < 0.18) return "🚀 神の反応";
+  if (rt < 0.32) return "⚡ 鋭い反応";
+  if (rt < 0.55) return "✊ ナイス";
+  return "出遅れ";
+}
+
+function dive() {
+  G.dove = true;
+  G.rt = (performance.now() - G.beepAt) / 1000;
+  const v0 = Math.max(2.5, Math.min(3.8, 3.8 - (G.rt - 0.55) * 2.5));
+  G.vel = v0;
+  G.glideDone = false;
+  G.underwater = true;                 // 壁キック後は水中バサロフェーズ
+  G.lastKickT = performance.now();
+  splash(0, 16, "#ffffff");
+  buzzHaptic(50);
+
+  // 反応時間(RT)を評価して演出
+  setMsg("壁キック成功！[ " + rtGrade(G.rt) + " ] 🐬 水中バサロ！", 1200);
+  G.fbColor = G.rt < 0.32 ? "#2ed573" : "#ffd166";
+}
+
+// ★ 水中バサロキック（連打で加速・水上より速い）★
+function doKick(now) {
+  if (state !== S.SWIM || !G.dove || !G.underwater) return;
+  const dt = (now - G.lastKickT) / 1000;
+  G.lastKickT = now;
+
+  let q;
+  if (dt < 0.1) { q = 0.3; }                  // 速すぎる連打は効率ダウン
+  else {
+    const err = Math.abs(dt - UW_TARGET);
+    q = err < 0.07 ? 1.3 : (err < 0.15 ? 1.0 : 0.6);
+  }
+
+  G.stamina = Math.max(0, G.stamina - 0.6);
+  const sf = G.stamina > 35 ? 1.0 : 0.4 + 0.6 * (G.stamina / 35);
+  // 壁キック・ターン直後はキャップ超えの高速グライド中。キックで殺さない
+  G.vel = Math.max(G.vel, Math.min(UW_CAP, G.vel + 0.5 * q * sf));
+
+  splash(0, 30, "#bfe9ff");
+  setMsg("🐬 バサロキック！", 350);
+  G.fbLabel = "🐬 キック！"; G.fbColor = q >= 1.3 ? "#2ed573" : "#4fc3f7";
+  tone(320, 0.06, "sine", 0.08);
+}
+
+// ★ 浮上（潜水フェーズを終えて水上ストロークへ）★
+function surface() {
+  if (state !== S.SWIM || !G.dove || !G.underwater) return;
+  G.underwater = false;
+  G.glideDone = true;
+  G.lastSide = null; G.lastTapT = 0;
+  G.vel = Math.min(G.vel, 3.0);          // 浮上の瞬間にわずかに減速
+  sndBreath();
+  splash(0, 40, "#ffffff");
+  setMsg("🆙 浮上！ 上向きクロールへ！", 850);
+  buzzHaptic(40);
+}
+
+// 姿勢リセットアクション
+function doBreath() {
+  // ラスト10mは姿勢より腕回しを優先する
+  if (state !== S.SWIM || !G.dove || G.isBreathing || G.underwater || inSpurt()) return;
+
+  G.isBreathing = true;
+  G.breathT = performance.now() + 260;
+  G.oxygen = 100;
+  G.vel = Math.max(0.8, G.vel * 0.88);
+
+  sndBreath();
+  splash(0, 24, "#e3f2fd");
+  setMsg("軸を戻した！", 620);
+  document.getElementById("oxygenAlert").className = "absolute inset-0 pointer-events-none transition-all duration-300";
+}
+
+// 左右交互タップ
+function onTap(side) {
+  const now = performance.now();
+  if (state === S.WHISTLE || state === S.MARKS || state === S.SET) { falseStart(); return; }
+  if (state !== S.SWIM) return;
+  if (!G.dove) { dive(); return; }
+
+  // 潜水中はストロークではなくバサロキック
+  if (G.underwater) { doKick(now); return; }
+
+  // ターン判定
+  if (G.leg < LEGS() && distInLeg() >= 23) { doTurn(); return; }
+
+  // ゴール判定
+  if (G.leg === LEGS() && G.dist >= TOTAL() - 1.5) { G.dist = TOTAL(); finishRace(); return; }
+
+  stroke(side, now);
+}
+
+function stroke(side, now) {
+  const spurt = inSpurt();
+  const dt = (now - G.lastTapT) / 1000;
+  G.strokes++;
+
+  // ストロークを重ねると姿勢ゲージが少しずつ崩れる
+  if (!spurt) {
+    G.oxygen = Math.max(0, G.oxygen - 6); // 1かきごとに姿勢ゲージが少し崩れる
+  }
+
+  let q, label, color;
+  const sameSide = (side === G.lastSide);
+  const lowOxygen = G.oxygen <= 20;
+
+  if (spurt) {
+    // ラストスパートはなんでもOK!
+    q = 1.1; label = "ラストスパート！"; color = "#ff6289"; sndSplash();
+  } else if (sameSide) {
+    // 交互ではない
+    q = 0.25; label = "交互じゃない！"; color = "#ff4757"; sndBad();
+    G.combo = 0;
+  } else {
+    // リズム評価
+    const tolSec = TOL / 1000;
+    const err = Math.abs(dt - TARGET);
+    G.altOK++;
+
+    if (G.lastTapT === 0 || dt > 1.3) {
+      q = 0.9; label = "よいスタート"; color = "#ffd32a"; sndOk();
+    } else {
+      if (err <= tolSec * 0.45) {
+        q = 1.35; label = "完璧リズム!!"; color = "#2ed573"; sndPerfect(); buzzHaptic(20);
+      } else if (err <= tolSec) {
+        q = 1.05; label = "ナイス！"; color = "#ffc048"; sndOk();
+      } else {
+        q = 0.55; label = "タイミング不良"; color = "#ffa801"; sndOk();
+      }
+      // 泳ぎ出し・姿勢リセット直後の1かき目はdtが不定のためリズム統計に含めない
+      G.rhythmSum += Math.round(err * 1000); G.rhythmN++;
+    }
+
+    G.combo++;
+  }
+
+  G.maxCombo = Math.max(G.maxCombo, G.combo);
+  G.lastSide = side; G.lastTapT = now;
+
+  // 酸欠ペナルティ：スタミナ消費が倍、スピード効率半減
+  let cost = spurt ? 1.0 : 1.3;
+  if (lowOxygen) cost *= 2.0;
+  if (dt < 0.16) cost += 1.5; // 連打ペナルティ
+
+  G.stamina = Math.max(0, G.stamina - cost);
+
+  // 速度上昇計算
+  let sf = G.stamina > 35 ? 1.0 : 0.4 + 0.6 * (G.stamina / 35);
+  if (lowOxygen && !spurt) sf *= 0.5; // 酸欠スピードペナルティ
+  if (spurt) sf = Math.max(sf, 0.75);
+
+  G.vel = Math.max(G.vel, Math.min(2.95, G.vel + 0.65 * q * sf));
+  G.strokeAnim = 1; G.strokeSide = side;
+
+  splash(side === "L" ? -12 : 12, 50, lowOxygen ? "#ffcccc" : "#dff2ff");
+  setMsg("ストローク！", 0);
+  G.fbLabel = label; G.fbColor = color;
+
+  // アラートの表示
+  const alertEl = document.getElementById("oxygenAlert");
+  if (lowOxygen) {
+    alertEl.className = "absolute inset-0 pointer-events-none transition-all duration-300 low-oxygen-alert";
+    setMsg("軸が崩れた！姿勢を戻す！", 300);
+  }
+}
+
+function doTurn() {
+  const d = distInLeg();
+  let q, label;
+
+  // ターン判定（25m直前ギリギリが良い）
+  // 早ターンはターン地点まで距離がワープする分、強めに減速させないと最速手になってしまう
+  if (G.wallStall) { q = 0.7; label = "失速ターン"; tone(330, 0.12, "sine", 0.15); }
+  else if (d >= 24.3) { q = 1.3; label = "神ターン!!"; tone(880, 0.15, "sine", 0.15); buzzHaptic(30); }
+  else if (d >= 23.4) { q = 1.0; label = "ナイスターン"; tone(660, 0.12, "sine", 0.15); }
+  else { q = 0.4; label = "早すぎるターン"; tone(440, 0.1, "sine", 0.15); }
+  G.wallStall = false;
+
+  if (G.leg === 2) G.split50 = (performance.now() - G.raceStart) / 1000;
+
+  G.leg++;
+  G.dist = legStartDist();
+  G.vel = Math.max(G.vel * 0.4, 3.1 * q);
+  G.glideDone = false;
+  G.underwater = true;                  // ターン後も水中バサロフェーズ
+  G.lastKickT = performance.now();
+  G.lastSide = null; G.lastTapT = 0;
+
+  setMsg(label + "！ 🐬 水中バサロ！", 950);
+  splash(0, 18, "#ffffff");
+}
+
+function finishRace() {
+  G.finalTime = (performance.now() - G.raceStart) / 1000;
+  state = S.FINISH;
+  tone(1320, 0.3, "square", 0.2);
+  buzzHaptic([0, 80, 50, 120]);
+
+  // ローカル読み上げ
+  speak(`ゴール！ 記録は ${G.finalTime.toFixed(2)} 秒！`);
+
+  showResult();
+}
+
+// ---------- 演出ヘルパー ----------
+function setMsg(t, ms) { G.msg = t; G.msgT = performance.now() + (ms || 700); }
+function splash(dx, spread, color) {
+  const L = layout();
+  const y = swimmerY(L);
+  const n = Math.round(spread / 10);
+  for (let i = 0; i < n; i++) {
+    particles.push({
+      x: W / 2 + dx + (Math.random() - 0.5) * spread,
+      y: y + (Math.random() - 0.5) * 20,
+      vx: (Math.random() - 0.5) * 80,
+      vy: -Math.random() * 60,
+      r: 1.5 + Math.random() * 3.5,
+      a: 1,
+      color: color || "#dff2ff"
+    });
+  }
+}
+function swimmerY(L) {
+  const span = L.poolBottom - L.poolTop;
+  const odd = (G.leg % 2 === 1);
+  const f = distInLeg() / POOLLEN;
+  return odd ? L.poolBottom - f * span : L.poolTop + f * span;
+}
+
+// ---------- ループ更新 ----------
+let prevT = performance.now();
+function update(now) {
+  const dt = Math.min(0.05, (now - prevT) / 1000);
+  prevT = now;
+  G.strokeAnim = Math.max(0, G.strokeAnim - dt * 3.8);
+
+  if (G.isBreathing && now > G.breathT) {
+    G.isBreathing = false;
+  }
+
+  if (state !== S.SWIM || !G.dove) return;
+
+  // 速度自然減速
+  if (G.underwater) {
+    G.vel = Math.max(0.8, G.vel * Math.exp(-0.55 * dt)); // キックを止めると失速
+    G.oxygen = Math.max(0, G.oxygen - 11 * dt);          // 潜水中は15mラインへ向けて姿勢ゲージを減らす
+  } else {
+    G.vel = Math.max(0, G.vel * Math.exp(-0.95 * dt));
+  }
+
+  G.dist += G.vel * dt;
+
+  // 壁より先へは進めない（ターンを逃すと壁に激突して失速）
+  if (G.leg < LEGS() && distInLeg() > POOLLEN) {
+    G.dist = legStartDist() + POOLLEN;
+    if (!G.wallStall) { setMsg("壁だ！タップでターン！", 600); G.fbColor = "#ff6b6b"; }
+    G.wallStall = true;
+    G.vel = Math.min(G.vel, 0.4);
+  }
+
+  // 背泳ぎ15mルール：潜水のまま15mを超えると失格
+  if (G.underwater && distInLeg() > UW_LIMIT) {
+    disqualify(
+      "⚠️ 15m潜水違反！ 背泳ぎのバサロは壁から15mまで。15mラインを越える前に「浮上」しましょう！",
+      "失格。15メートル潜水違反です",
+      "15m VIOLATION"
+    );
+    return;
+  }
+
+  // ゴール判定
+  if (G.leg === LEGS() && G.dist >= TOTAL()) {
+    G.dist = TOTAL();
+    finishRace();
+    return;
+  }
+
+  // しぶき計算
+  for (const p of particles) {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 160 * dt;
+    p.a -= dt * 2.2;
+  }
+  particles = particles.filter(p => p.a > 0);
+}
+
+// ---------- 描画 ----------
+function fmt(t) {
+  if (t == null) return "--.--";
+  const m = Math.floor(t / 60), s = t - m * 60;
+  const ss = s.toFixed(2).padStart(5, "0");
+  return m > 0 ? m + ":" + ss : ss;
+}
+
+function draw(now) {
+  const L = layout();
+  cx.fillStyle = "#030a16"; cx.fillRect(0, 0, W, H);
+
+  const laneW = Math.min(W * 0.65, 300);
+  const lx = (W - laneW) / 2;
+
+  // プールグラデーション
+  const grad = cx.createLinearGradient(0, L.poolTop, 0, L.poolBottom);
+  grad.addColorStop(0, "#0a365c"); grad.addColorStop(1, "#0d558a");
+  cx.fillStyle = grad;
+  cx.fillRect(lx, L.poolTop, laneW, L.poolBottom - L.poolTop);
+
+  // 流れる水流アニメーション
+  cx.globalAlpha = 0.06; cx.fillStyle = "#aee2ff";
+  for (let i = 0; i < 5; i++) {
+    const yy = L.poolTop + ((now / 35 + i * 110) % (L.poolBottom - L.poolTop));
+    cx.fillRect(lx, yy, laneW, 3);
+  }
+  cx.globalAlpha = 1;
+
+  // プール端の壁
+  cx.fillStyle = "#e2eaf0";
+  cx.fillRect(lx - 8, L.poolTop - 12, laneW + 16, 12);
+  cx.fillRect(lx - 8, L.poolBottom, laneW + 16, 12);
+
+  // ★ スタート台（手前の壁の上）：スタート前に強調表示 ★
+  if (state === S.WHISTLE || state === S.MARKS || state === S.SET) {
+    const blockW = 46, blockX = W / 2 - blockW / 2;
+    cx.fillStyle = (state === S.SET) ? "#00f0ff" : "#9fb6c9";
+    cx.fillRect(blockX, L.poolBottom + 2, blockW, 10);
+    cx.fillStyle = "#0a2236";
+    cx.fillRect(blockX + 4, L.poolBottom + 4, blockW - 8, 4);
+  }
+
+  // コースロープ
+  const seg = 18;
+  for (const sx of [lx - 5, lx + laneW + 5]) {
+    for (let y = L.poolTop; y < L.poolBottom; y += seg) {
+      const near5 = (y - L.poolTop) < (L.poolBottom - L.poolTop) * 0.2 ||
+                    (L.poolBottom - y) < (L.poolBottom - L.poolTop) * 0.2;
+      cx.fillStyle = (Math.floor(y / seg) % 2 === 0) ? (near5 ? "#ff4d6d" : "#f1f2f6") : "#1e90ff";
+      cx.beginPath(); cx.arc(sx, y + seg / 2, 3.5, 0, 7); cx.fill();
+    }
+  }
+
+  // センターライン(T文字)
+  cx.fillStyle = "#05223b";
+  cx.fillRect(W / 2 - 3, L.poolTop, 6, L.poolBottom - L.poolTop);
+  cx.fillRect(W / 2 - 18, L.poolTop + 6, 36, 6);
+  cx.fillRect(W / 2 - 18, L.poolBottom - 12, 36, 6);
+
+  // ターンタイミングターゲット表示
+  if (state === S.SWIM && G.dove && G.leg < LEGS() && distInLeg() >= 19) {
+    const odd = (G.leg % 2 === 1);
+    const yWall = odd ? L.poolTop : L.poolBottom;
+    const span = L.poolBottom - L.poolTop;
+    const zH = (2 / POOLLEN) * span; // 2m幅
+    cx.globalAlpha = 0.2 + 0.15 * Math.sin(now / 100);
+    cx.fillStyle = "#00f0ff";
+    cx.fillRect(lx, odd ? yWall : yWall - zH, laneW, zH);
+    cx.globalAlpha = 1;
+
+    if (distInLeg() >= 22) {
+      cx.fillStyle = "#00f0ff"; cx.font = "bold 20px sans-serif"; cx.textAlign = "center";
+      cx.fillText("💡 ターン! いまだ!!", W / 2, odd ? yWall + zH + 25 : yWall - zH - 15);
+    }
+  }
+
+  // スパートフラグ
+  if (state === S.SWIM && G.dove && G.dist >= SPURT_FROM() - 5) {
+    const span = L.poolBottom - L.poolTop;
+    const f = (SPURT_FROM() - legStartDist()) / POOLLEN;
+    const odd = (G.leg % 2 === 1);
+    const ys = odd ? L.poolBottom - f * span : L.poolTop + f * span;
+    cx.globalAlpha = inSpurt() ? 0.25 + 0.1 * Math.sin(now / 80) : 0.08;
+    cx.fillStyle = "#ff007f";
+    if (odd) cx.fillRect(lx, L.poolTop, laneW, ys - L.poolTop);
+    else cx.fillRect(lx, ys, laneW, L.poolBottom - ys);
+    cx.globalAlpha = 1;
+  }
+
+  // ★ 潜水(バサロ)中：15m潜水限界ラインと距離ゲージ ★
+  if (state === S.SWIM && G.dove && G.underwater) {
+    const span = L.poolBottom - L.poolTop;
+    const odd = (G.leg % 2 === 1);
+    const f15 = UW_LIMIT / POOLLEN;
+    const y15 = odd ? L.poolBottom - f15 * span : L.poolTop + f15 * span;
+    cx.strokeStyle = "#ff5252"; cx.lineWidth = 2; cx.setLineDash([9, 6]);
+    cx.beginPath(); cx.moveTo(lx, y15); cx.lineTo(lx + laneW, y15); cx.stroke();
+    cx.setLineDash([]);
+    cx.fillStyle = "#ff8a80"; cx.font = "bold 11px sans-serif"; cx.textAlign = "left";
+    cx.fillText("15m 潜水限界", lx + 4, y15 + (odd ? -6 : 15));
+
+    const d = Math.min(UW_LIMIT, distInLeg());
+    const warn = d > 11;
+    cx.fillStyle = warn ? "#ff5252" : "#4fc3f7";
+    cx.font = "bold 13px 'Courier New',monospace"; cx.textAlign = "center";
+    cx.fillText("🐬 潜水 " + d.toFixed(1) + "m / 15m" + (warn ? "  浮上しろ！" : ""), W / 2, L.boardH + 16);
+  }
+
+  // スイマーの描画
+  if (state === S.SWIM || state === S.FINISH) {
+    const y = swimmerY(L);
+    const odd = (G.leg % 2 === 1);
+    cx.save();
+    cx.translate(W / 2, y);
+    if (!odd) cx.rotate(Math.PI);
+    drawSwimmer(now);
+    cx.restore();
+  }
+
+  // ★ アナウンス/テキスト（本格スタート対応）★
+  const midY = (L.poolTop + L.poolBottom) / 2;
+  if (state === S.WHISTLE) {
+    cx.fillStyle = "#7fe3ff"; cx.font = "bold 22px sans-serif"; cx.textAlign = "center";
+    cx.fillText("🔵 ピーッ！", W / 2, midY - 10);
+    cx.font = "13px sans-serif"; cx.fillStyle = "#bfefff";
+    cx.fillText("ロングホイッスル … スタート台へ", W / 2, midY + 16);
+  }
+  if (state === S.MARKS) {
+    cx.fillStyle = "#ffffff"; cx.font = "bold 24px sans-serif"; cx.textAlign = "center";
+    cx.fillText("Take your marks", W / 2, midY - 8);
+    cx.font = "12px sans-serif"; cx.fillStyle = "#ffd166";
+    cx.fillText("静止して合図を待て（早いと失格！）", W / 2, midY + 18);
+  }
+  if (state === S.SET) {
+    cx.fillStyle = "#00f0ff"; cx.font = "bold 30px sans-serif"; cx.textAlign = "center";
+    cx.fillText("・ ・ ・", W / 2, midY);
+    cx.font = "12px sans-serif"; cx.fillStyle = "#ff6b6b";
+    cx.fillText("⚡ 電子音「ピーッ」で壁を蹴れ！", W / 2, midY + 26);
+  }
+  if (state === S.SWIM && !G.dove) {
+    cx.fillStyle = "#00f0ff"; cx.font = "bold 24px sans-serif"; cx.textAlign = "center";
+    cx.fillText("👇 今だ！タップで壁を蹴れ！", W / 2, midY);
+  }
+
+  // しぶきパーティクル描画
+  for (const p of particles) {
+    cx.globalAlpha = Math.max(0, p.a);
+    cx.fillStyle = p.color;
+    cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 7); cx.fill();
+  }
+  cx.globalAlpha = 1;
+
+  // 電光掲示板
+  cx.fillStyle = "#000"; cx.fillRect(0, 0, W, L.boardH);
+  cx.strokeStyle = "#122538"; cx.lineWidth = 1.5;
+  cx.strokeRect(0, 0, W, L.boardH);
+  cx.fillStyle = "#00f0ff";
+  cx.font = "bold 26px 'Courier New',monospace"; cx.textAlign = "left";
+
+  let t = 0;
+  if (state === S.SWIM) t = (performance.now() - G.raceStart) / 1000;
+  if (state === S.FINISH) t = G.finalTime;
+  cx.fillText("⏱ " + fmt(state >= S.SWIM && state !== S.FALSE ? t : null), 12, 38);
+
+  cx.font = "11px 'Courier New',monospace"; cx.fillStyle = "#00ff7f";
+  const rtTxt = G.dove ? "RT +" + G.rt.toFixed(2) : "RT --";
+  cx.fillText(rtTxt + "   " + Math.min(TOTAL(), Math.floor(G.dist)) + "m / " + RACE_DIST + "m", 12, 58);
+
+  cx.textAlign = "right"; cx.fillStyle = "#00f0ff"; cx.font = "12px sans-serif";
+  const charIcon = CHAR === "dog" ? "🐕" : CHAR === "cat" ? "🐈" : "🏊";
+  cx.fillText(charIcon + " " + (playerName || "GUEST"), W - 12, 22);
+  cx.fillStyle = "#4a6885"; cx.font = "10px sans-serif";
+  cx.fillText(RACE_DIST + "m Ba | " + G.combo + "コンボ", W - 12, 40);
+
+  // コントロールタップゾーン
+  const zy = H - L.zoneH;
+  const active = state === S.SWIM && G.dove;
+  const spurtNow = active && inSpurt();
+  const uwNow = active && G.underwater;
+
+  // 左右ゾーンの描画（潜水中はバサロキック、水上は左右ストローク）
+  for (const side of ["L", "R"]) {
+    const x0 = side === "L" ? 0 : W / 2;
+    cx.fillStyle = uwNow ? "#0a2540" : (spurtNow ? "#4d0018" : (active ? "#041a2e" : "#020f1b"));
+    cx.fillRect(x0 + 6, zy + 6, W / 2 - 12, L.zoneH - 12);
+    cx.strokeStyle = uwNow ? "#4fc3f7" : (spurtNow ? "#ff0055" : (active ? "#00f0ff" : "#102a45"));
+    cx.lineWidth = 2.5;
+    cx.strokeRect(x0 + 6, zy + 6, W / 2 - 12, L.zoneH - 12);
+
+    cx.fillStyle = uwNow ? "#9fe0ff" : "#00f0ff"; cx.font = "bold 24px sans-serif"; cx.textAlign = "center";
+    cx.fillText(uwNow ? "バサロ 🐬" : (side === "L" ? "左腕 ↺" : "右腕 ↻"), x0 + W / 4, zy + L.zoneH / 2 - 5);
+
+    cx.fillStyle = spurtNow ? "#ff8fa3" : (uwNow ? "#7fc7ff" : "#3e5c7a"); cx.font = "11px sans-serif";
+    cx.fillText(uwNow ? "リズム連打！" : (spurtNow ? "全力回転！" : "上向き交互"), x0 + W / 4, zy + L.zoneH / 2 + 20);
+  }
+
+  // 姿勢＆スタミナゲージバー
+  const barY = zy - 18;
+  // 姿勢バー
+  cx.fillStyle = "#091c2c"; cx.fillRect(12, barY, W / 2 - 24, 8);
+  cx.fillStyle = G.oxygen > 20 ? "#3ae374" : "#ff4d4d";
+  cx.fillRect(12, barY, (W / 2 - 24) * (G.oxygen / 100), 8);
+  cx.fillStyle = "#829fb8"; cx.font = "10px sans-serif"; cx.textAlign = "left";
+  cx.fillText("姿勢 AXIS (崩れたら中央)", 12, barY - 4);
+
+  // スタミナバー
+  cx.fillStyle = "#091c2c"; cx.fillRect(W / 2 + 12, barY, W / 2 - 24, 8);
+  cx.fillStyle = G.stamina > 30 ? "#ffd32a" : "#ff3838";
+  cx.fillRect(W / 2 + 12, barY, (W / 2 - 24) * (G.stamina / 100), 8);
+  cx.fillStyle = "#829fb8"; cx.textAlign = "right";
+  cx.fillText("スタミナ", W - 12, barY - 4);
+
+  // 中央ボタン：潜水中は「浮上」、水上では「姿勢」
+  if (active && !spurtNow) {
+    const btnW = 100, btnH = 42;
+    const bx = W / 2 - btnW / 2;
+    const by = zy - 70;
+
+    if (G.underwater) {
+      // 浮上ボタン（15m接近で警告色）
+      const near = distInLeg() > 11;
+      const col = near ? "#ff5252" : "#ffb300";
+      cx.fillStyle = col;
+      cx.shadowBlur = near ? 14 : 8; cx.shadowColor = col;
+      cx.beginPath(); cx.roundRect(bx, by, btnW, btnH, 8); cx.fill();
+      cx.shadowBlur = 0;
+      cx.fillStyle = "#101010"; cx.font = "bold 14px sans-serif"; cx.textAlign = "center";
+      cx.fillText("🆙 浮上", W / 2, by + 19);
+      cx.fillStyle = "#3a2a00"; cx.font = "9px sans-serif";
+      cx.fillText("(タップ / Space)", W / 2, by + 32);
+    } else {
+      // 姿勢ボタン
+      const col = G.oxygen <= 20 ? "#ff3838" : "#00f0ff";
+      cx.fillStyle = col;
+      cx.shadowBlur = G.oxygen <= 20 ? 12 : 6; cx.shadowColor = col;
+      cx.beginPath(); cx.roundRect(bx, by, btnW, btnH, 8); cx.fill();
+      cx.shadowBlur = 0;
+      cx.fillStyle = "#000"; cx.font = "bold 13px sans-serif"; cx.textAlign = "center";
+      cx.fillText("↻ 姿勢", W / 2, by + 19);
+      cx.fillStyle = "#1e272e"; cx.font = "9px sans-serif";
+      cx.fillText("(タップ / Space)", W / 2, by + 32);
+    }
+  }
+
+  // フィードバックテキスト
+  if (G.msg && performance.now() < G.msgT) {
+    const col = G.fbColor || "#00f0ff";
+    cx.fillStyle = col; cx.font = "bold 20px sans-serif"; cx.textAlign = "center";
+    let m = G.msg;
+    if (G.msg === "ストローク！" && G.fbLabel) m = G.fbLabel;
+    cx.fillText(m, W / 2, zy - 80);
+
+    if (G.msg === "ストローク！" && G.rhythmN) {
+      cx.fillStyle = "#829fb8"; cx.font = "10px 'Courier New',monospace";
+      cx.fillText("リズム誤差 平均 " + Math.round(G.rhythmSum / G.rhythmN) + "ms", W / 2, zy - 96);
+    }
+  }
+
+  // ★ スタート号砲のストロボ閃光（全画面フラッシュ）★
+  if (G.strobeT && now < G.strobeT) {
+    const k = (G.strobeT - now) / 320; // 1→0
+    cx.globalAlpha = Math.max(0, k * 0.7);
+    cx.fillStyle = "#ffffff";
+    cx.fillRect(0, 0, W, H);
+    cx.globalAlpha = 1;
+  }
+}
+
+// ---------- 上向き自由形としての背泳ぎスイマー描画 ----------
+function drawSwimmer(now) {
+  const u = Math.min(W, 430) / 100 * 0.65;
+  const kick = Math.sin(now / 58);
+  const C = CHARS[CHAR];
+  const gliding = (state === S.SWIM && G.dove && G.underwater);
+
+  cx.globalAlpha = 0.24;
+  cx.fillStyle = gliding ? "#8ee8ff" : "#9de0ff";
+  cx.beginPath();
+  cx.ellipse(0, 16 * u, (5 + G.vel * 2.2) * u, (10 + G.vel * 6.6) * u, 0, 0, 7);
+  cx.fill();
+  cx.globalAlpha = 1;
+
+  const axisDrift = (100 - G.oxygen) / 100;
+  const roll = Math.sin(now / 180) * 0.16 + (G.strokeSide === "L" ? -1 : 1) * G.strokeAnim * 0.12 + axisDrift * Math.sin(now / 90) * 0.18;
+  cx.rotate(roll);
+
+  if (gliding) {
+    drawBackCore(C, u, now, true);
+    drawStreamlineArms(C, u);
+    drawDolphinLegs(C, u, kick, 3.4);
+    drawBackstrokeBadge(u, "BASALO", "15m以内に浮上");
+    return;
+  }
+
+  const ph = 1 - G.strokeAnim;
+  const activeM = (G.strokeSide === "L") ? -1 : 1;
+  for (const m of [-1, 1]) {
+    const phase = (m === activeM && G.strokeAnim > 0.02) ? ph : ((ph + (m < 0 ? 0.55 : 0.05)) % 1);
+    drawBackArm(C, u, m, phase, m === activeM && G.strokeAnim > 0.02);
+  }
+  drawBackCore(C, u, now, false);
+  drawFlutterLegs(C, u, kick);
+  drawBackstrokeBadge(u, "BACKSTROKE", "自由形を上向きに");
+}
+
+function drawBackCore(C, u, now, gliding) {
+  cx.fillStyle = C.suit;
+  cx.beginPath(); cx.ellipse(0, 4 * u, 5.4 * u, 12.4 * u, 0, 0, 7); cx.fill();
+  cx.fillStyle = C.skin;
+  cx.beginPath(); cx.ellipse(0, -2.5 * u, 5.1 * u, 6.8 * u, 0, 0, 7); cx.fill();
+
+  cx.fillStyle = C.skin;
+  cx.beginPath(); cx.arc(0, -9.2 * u, 4.5 * u, 0, 7); cx.fill();
+  cx.fillStyle = C.cap;
+  cx.beginPath(); cx.arc(0, -10.7 * u, 4.2 * u, Math.PI, 0); cx.fill();
+
+  cx.fillStyle = C.goggle;
+  cx.fillRect(-3.1 * u, -10.2 * u, 6.2 * u, 1.6 * u);
+  cx.fillStyle = "rgba(255,255,255,.75)";
+  cx.fillRect(-2.6 * u, -9.8 * u, 1.6 * u, 0.7 * u);
+  cx.fillRect(1.0 * u, -9.8 * u, 1.6 * u, 0.7 * u);
+  cx.strokeStyle = "rgba(55,35,20,.55)"; cx.lineWidth = 0.9 * u; cx.lineCap = "round";
+  cx.beginPath(); cx.moveTo(-1.5 * u, -6.9 * u); cx.quadraticCurveTo(0, -6.1 * u, 1.5 * u, -6.9 * u); cx.stroke();
+
+  if (CHAR === "dog") {
+    cx.fillStyle = C.detail;
+    cx.beginPath(); cx.ellipse(-4.9 * u, -9.8 * u, 1.8 * u, 3.8 * u, -0.25, 0, 7); cx.fill();
+    cx.beginPath(); cx.ellipse(4.9 * u, -9.8 * u, 1.8 * u, 3.8 * u, 0.25, 0, 7); cx.fill();
+  }
+  if (CHAR === "cat") {
+    cx.fillStyle = C.skin;
+    cx.beginPath(); cx.moveTo(-4.4 * u, -10 * u); cx.lineTo(-5.6 * u, -14 * u); cx.lineTo(-2.2 * u, -12 * u); cx.closePath(); cx.fill();
+    cx.beginPath(); cx.moveTo(4.4 * u, -10 * u); cx.lineTo(5.6 * u, -14 * u); cx.lineTo(2.2 * u, -12 * u); cx.closePath(); cx.fill();
+  }
+
+  cx.globalAlpha = gliding ? 0.55 : 0.32;
+  cx.fillStyle = "#dffcff";
+  cx.beginPath(); cx.ellipse(0, -8.5 * u, 8.5 * u, 3.0 * u, 0, 0, 7); cx.fill();
+  cx.globalAlpha = 1;
+}
+
+function drawStreamlineArms(C, u) {
+  cx.strokeStyle = C.skin;
+  cx.lineWidth = 3.4 * u;
+  cx.lineCap = "round";
+  cx.beginPath();
+  cx.moveTo(-3.6 * u, -3 * u); cx.quadraticCurveTo(-1.4 * u, -15 * u, 0, -22 * u);
+  cx.moveTo(3.6 * u, -3 * u); cx.quadraticCurveTo(1.4 * u, -15 * u, 0, -22 * u);
+  cx.stroke();
+  cx.fillStyle = C.skin;
+  cx.beginPath(); cx.arc(0, -22 * u, 2.3 * u, 0, 7); cx.fill();
+}
+
+function drawBackArm(C, u, m, ph, active) {
+  const shoulderX = m * 4.5 * u;
+  const shoulderY = -2.4 * u;
+  let handX, handY, midX, midY, water;
+  if (ph < 0.48) {
+    const p = ph / 0.48;
+    const ang = (-108 + p * 138) * Math.PI / 180;
+    const len = (12.5 + Math.sin(p * Math.PI) * 2.1) * u;
+    handX = shoulderX + m * Math.cos(ang) * len;
+    handY = shoulderY + Math.sin(ang) * len;
+    midX = shoulderX + m * Math.cos(ang - .22) * len * .58;
+    midY = shoulderY + Math.sin(ang - .22) * len * .58;
+    water = false;
+  } else {
+    const p = (ph - 0.48) / 0.52;
+    const ang = (35 + p * 150) * Math.PI / 180;
+    const len = (10.5 + Math.sin(p * Math.PI) * 1.5) * u;
+    handX = shoulderX + m * Math.cos(ang) * len;
+    handY = shoulderY + Math.sin(ang) * len;
+    midX = shoulderX + m * Math.cos(ang + .28) * len * .62;
+    midY = shoulderY + Math.sin(ang + .28) * len * .62;
+    water = true;
+  }
+  cx.strokeStyle = water ? C.waterArm : C.skin;
+  cx.lineWidth = (active ? 4.0 : 3.2) * u;
+  cx.lineCap = "round";
+  cx.beginPath();
+  cx.moveTo(shoulderX, shoulderY);
+  cx.quadraticCurveTo(midX, midY, handX, handY);
+  cx.stroke();
+  cx.fillStyle = C.skin;
+  cx.beginPath(); cx.arc(handX, handY, 1.75 * u, 0, 7); cx.fill();
+}
+
+function drawFlutterLegs(C, u, kick) {
+  cx.strokeStyle = C.skin;
+  cx.lineWidth = 3.0 * u;
+  cx.lineCap = "round";
+  const f = kick * 3.0 * u;
+  cx.beginPath();
+  cx.moveTo(-1.7 * u, 12 * u); cx.lineTo(-1.8 * u + f * .5, 19 * u);
+  cx.moveTo(1.7 * u, 12 * u); cx.lineTo(1.8 * u - f * .5, 19 * u);
+  cx.stroke();
+}
+
+function drawDolphinLegs(C, u, kick, amp) {
+  cx.strokeStyle = C.skin;
+  cx.lineWidth = 3.0 * u;
+  cx.lineCap = "round";
+  const f = kick * amp * u;
+  cx.beginPath();
+  cx.moveTo(-1.7 * u, 12 * u); cx.quadraticCurveTo(-1.8 * u + f * .25, 16 * u, -1.6 * u + f * .65, 21 * u);
+  cx.moveTo(1.7 * u, 12 * u); cx.quadraticCurveTo(1.8 * u + f * .25, 16 * u, 1.6 * u + f * .65, 21 * u);
+  cx.stroke();
+}
+
+function drawBackstrokeBadge(u, title, sub) {
+  cx.save();
+  cx.globalAlpha = 0.88;
+  cx.fillStyle = "rgba(2, 8, 20, .64)";
+  cx.beginPath(); cx.roundRect(-38 * u, 35 * u, 76 * u, 13 * u, 5 * u); cx.fill();
+  cx.globalAlpha = 1;
+  cx.fillStyle = "#e8f4ff"; cx.font = "900 " + (6.2 * u) + "px sans-serif"; cx.textAlign = "center";
+  cx.fillText(title, 0, 40.2 * u);
+  cx.fillStyle = "#8fdcff"; cx.font = "700 " + (4.1 * u) + "px sans-serif";
+  cx.fillText(sub, 0, 45.4 * u);
+  cx.restore();
+}
+
+const CHARS = {
+  human: { skin: "#fbc531", suit: "#1e3799", cap: "#4cd137", goggle: "#1e272e", waterArm: "#e1b12c", detail: "#1e272e" },
+  dog: { skin: "#dcdde1", suit: "#718093", cap: "#54a0ff", goggle: "#1e272e", waterArm: "#9c88ff", detail: "#2f3640" },
+  cat: { skin: "#353b48", suit: "#111827", cap: "#ff6b9d", goggle: "#f5f6fa", waterArm: "#718093", detail: "#f5f6fa" }
+};
+
+function loop(now) {
+  update(now);
+  draw(now);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ---------- ユーザーコントロール（タップ・キー） ----------
+function tapX(x, y) {
+  if (state === S.WHISTLE || state === S.MARKS || state === S.SET) { falseStart(); return; }
+  if (state !== S.SWIM) return;
+  if (!G.dove) { dive(); return; }
+
+  // 中央ボタンの判定エリア (画面中央上部)
+  const L = layout();
+  const zy = H - L.zoneH;
+  const isCenterBtn = (y > zy - 74 && y < zy - 28 && x > W / 2 - 50 && x < W / 2 + 50);
+
+  if (G.underwater) {
+    // 潜水中：中央ボタンで浮上、左右ゾーンでキック
+    if (isCenterBtn) surface(); else doKick(performance.now());
+    return;
+  }
+
+  // スパート中は姿勢ボタン非表示のため、中央タップもストロークとして拾う
+  if (isCenterBtn && !inSpurt()) {
+    doBreath();
+  } else {
+    onTap(x < W / 2 ? "L" : "R");
+  }
+}
+
+// タッチイベント
+cv.addEventListener("touchstart", e => {
+  e.preventDefault();
+  ac();
+  unlockSpeechAudio();
+  for (const t of e.changedTouches) {
+    tapX(t.clientX, t.clientY);
+  }
+}, { passive: false });
+
+// マウスイベント
+cv.addEventListener("mousedown", e => {
+  ac();
+  unlockSpeechAudio();
+  tapX(e.clientX, e.clientY);
+});
+
+// キーボード
+window.addEventListener("keydown", e => {
+  if (e.repeat) return;
+  if (document.activeElement && document.activeElement.id === "nameInput") return;
+  // 合図前のキー入力もフライング扱い
+  if (state === S.WHISTLE || state === S.MARKS || state === S.SET) {
+    if (e.key === "f" || e.key === "F" || e.key === "j" || e.key === "J" || e.key === " " || e.key === "Spacebar") { falseStart(); }
+    return;
+  }
+  if (e.key === "f" || e.key === "F") onTap("L");
+  else if (e.key === "j" || e.key === "J") onTap("R");
+  else if (e.key === " " || e.key === "Spacebar") {
+    if (!G.dove && state === S.SWIM) { dive(); }
+    else if (G.underwater) { surface(); }
+    else { doBreath(); }
+  }
+});
+
+// ---------- ローカル（LocalStorage）ランキング管理 ----------
+const localLeaderboardKey = "super-back-local-leaderboard";
+
+// ローカルにタイムを保存する
+function saveTimeLocal(time) {
+  const statusEl = document.getElementById("savingStatus");
+  statusEl.textContent = "記録を保存中...";
+  statusEl.className = "text-[10px] text-amber-400";
+
+  try {
+    const scoreData = {
+      name: playerName || "GUEST",
+      time: parseFloat(time.toFixed(2)),
+      rt: parseFloat(G.rt.toFixed(2)),
+      sync: G.rhythmN ? Math.round(G.rhythmSum / G.rhythmN) : 999,
+      char: CHAR,
+      dist: RACE_DIST,
+      timestamp: Date.now()
+    };
+
+    let leaderboard = [];
+    const saved = store.get(localLeaderboardKey);
+    if (saved) {
+      leaderboard = JSON.parse(saved);
+    }
+
+    leaderboard.push(scoreData);
+    store.set(localLeaderboardKey, JSON.stringify(leaderboard));
+
+    statusEl.textContent = "✓ ローカルに保存完了！";
+    statusEl.className = "text-[10px] text-emerald-400";
+
+    fetchLeaderboard();
+  } catch (error) {
+    console.error("Local Storage Save Error: ", error);
+    statusEl.textContent = "保存失敗";
+    statusEl.className = "text-[10px] text-rose-500";
+  }
+}
+
+// 保存されたランキングを表示
+function fetchLeaderboard() {
+  const ldrList = document.getElementById("ldrList");
+  ldrList.innerHTML = `<div class="text-slate-500 text-center py-2">読み込み中...</div>`;
+
+  try {
+    const saved = store.get(localLeaderboardKey);
+    let records = [];
+    if (saved) {
+      records = JSON.parse(saved);
+    }
+
+    records = records.filter(d => d.dist === RACE_DIST);
+    records.sort((a, b) => a.time - b.time);
+
+    const top10 = records.slice(0, 10);
+    renderList(ldrList, top10);
+  } catch (error) {
+    console.error("Local Leaderboard Load Error: ", error);
+    ldrList.innerHTML = `<div class="text-slate-500 text-center py-2">データの読み込みに失敗しました</div>`;
+  }
+}
+
+// 選手名はinnerHTMLに埋め込むため必ずエスケープする
+function escHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// リストのHTML描画
+function renderList(targetEl, list) {
+  if (list.length === 0) {
+    targetEl.innerHTML = `<div class="text-slate-500 text-center py-4">まだ記録がありません。最初の泳者になりましょう！</div>`;
+    return;
+  }
+
+  targetEl.innerHTML = list.map((r, i) => {
+    let rankColor = "text-slate-400";
+    if (i === 0) rankColor = "text-amber-400 font-bold";
+    if (i === 1) rankColor = "text-slate-300 font-bold";
+    if (i === 2) rankColor = "text-amber-600 font-bold";
+    const charIcon = r.char === "dog" ? "🐕" : r.char === "cat" ? "🐈" : "🏊";
+
+    return `
+      <div class="flex justify-between items-center bg-slate-900 border border-slate-800/50 rounded-md px-2.5 py-1 mb-1">
+        <div class="flex items-center gap-2">
+          <span class="w-5 text-center ${rankColor}">${i + 1}</span>
+          <span class="text-slate-300 truncate max-w-[120px]">${escHtml(r.name)}</span>
+          <span class="text-[10px] opacity-60">${charIcon}</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-[10px] text-emerald-400">RT:${r.rt}s</span>
+          <span class="font-mono text-cyan-300 font-bold">${r.time.toFixed(2)}秒</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// ---------- UI ＆ 画面遷移制御 ----------
+function show(id) {
+  for (const x of ["title", "false", "result", "ldrModal"]) {
+    document.getElementById(x).classList.add("hidden");
+  }
+  if (id) document.getElementById(id).classList.remove("hidden");
+}
+
+function rankOf(t) {
+  if (RACE_DIST === 50) {
+    if (t < 23.5) return "🏆 全国大会 決勝レベル！";
+    if (t < 26.5) return "🥇 県大会 上位入賞！";
+    if (t < 30.5) return "🥈 県大会 出場レベル";
+    if (t < 38.0) return "🥉 ジュニアスイマー級";
+    return "🏊 完泳おめでとう！";
+  } else {
+    if (t < 51.5) return "🏆 全国大会 決勝レベル！";
+    if (t < 57.5) return "🥇 県大会 上位入賞！";
+    if (t < 67.5) return "🥈 県大会 出場レベル";
+    if (t < 84.0) return "🥉 ジュニアスイマー級";
+    return "🏊 完泳おめでとう！";
+  }
+}
+
+function bestKey() { return "super-back" + RACE_DIST + "-best"; }
+
+function showResult() {
+  document.getElementById("finalTime").textContent = G.finalTime.toFixed(2) + "秒";
+  document.getElementById("rRT").textContent = "+" + G.rt.toFixed(2) + "秒 (" + rtGrade(G.rt) + ")";
+  document.getElementById("rSplit").textContent = (RACE_DIST === 100 && G.split50) ? G.split50.toFixed(2) + "秒" : "なし";
+  document.getElementById("rSync").textContent = G.rhythmN ? Math.round(G.rhythmSum / G.rhythmN) + "ms" : "計測不可";
+  document.getElementById("rCombo").textContent = G.maxCombo + "回";
+  document.getElementById("rankBadge").textContent = rankOf(G.finalTime);
+
+  const nb = document.getElementById("newBest");
+
+  if (myBest === null || G.finalTime < myBest) {
+    myBest = G.finalTime;
+    store.set(bestKey(), String(myBest));
+    nb.classList.remove("hidden");
+  } else {
+    nb.classList.add("hidden");
+  }
+
+  show("result");
+  saveTimeLocal(G.finalTime);
+}
+
+function updateBestLabel() {
+  document.getElementById("bestLabel").textContent = myBest ? "あなたの最高記録: " + fmt(myBest) : "";
+}
+
+function setOpt(cls, attr, val) {
+  document.querySelectorAll("." + cls).forEach(x => {
+    x.classList.toggle("bg-cyan-900", x.dataset[attr] === val);
+    x.classList.toggle("text-cyan-300", x.dataset[attr] === val);
+    x.classList.toggle("border-cyan-400", x.dataset[attr] === val);
+  });
+}
+
+function refreshDist() {
+  const sb = parseFloat(store.get(bestKey()));
+  myBest = isNaN(sb) ? null : sb;
+  updateBestLabel();
+}
+
+// 初期化設定
+const nameInput = document.getElementById("nameInput");
+(function init() {
+  const sn = store.get("super-back-player-name");
+  if (sn) {
+    playerName = sn;
+    nameInput.value = sn;
+  }
+  const sd = store.get("super-back-dist") || "50";
+  RACE_DIST = parseInt(sd, 10);
+  setOpt("distOpt", "dist", sd);
+
+  const sc = store.get("super-back-char") || "human";
+  CHAR = sc;
+  setOpt("chOpt", "ch", sc);
+
+  setOpt("tolOpt", "tol", "110"); // デフォルト一般クラス
+  refreshDist();
+})();
+
+nameInput.addEventListener("input", () => {
+  playerName = nameInput.value.trim();
+});
+
+// イベントリスナ設定
+for (const b of document.querySelectorAll(".distOpt")) {
+  b.addEventListener("click", () => {
+    RACE_DIST = parseInt(b.dataset.dist, 10);
+    setOpt("distOpt", "dist", b.dataset.dist);
+    store.set("super-back-dist", String(RACE_DIST));
+    refreshDist();
+  });
+}
+for (const b of document.querySelectorAll(".chOpt")) {
+  b.addEventListener("click", () => {
+    CHAR = b.dataset.ch;
+    setOpt("chOpt", "ch", CHAR);
+    store.set("super-back-char", CHAR);
+  });
+}
+for (const b of document.querySelectorAll(".tolOpt")) {
+  b.addEventListener("click", () => {
+    TOL = parseInt(b.dataset.tol, 10);
+    setOpt("tolOpt", "tol", b.dataset.tol);
+  });
+}
+
+document.getElementById("startBtn").addEventListener("click", () => {
+  ac();
+  unlockSpeechAudio();
+  playerName = nameInput.value.trim();
+  if (!playerName) {
+    nameInput.placeholder = "名前を入れてね！";
+    nameInput.focus();
+    return;
+  }
+  store.set("super-back-player-name", playerName);
+  show(null);
+  startSequence();
+});
+
+document.getElementById("retryBtn").addEventListener("click", () => { show(null); startSequence(); });
+document.getElementById("againBtn").addEventListener("click", () => { show(null); startSequence(); });
+document.getElementById("homeBtn").addEventListener("click", () => {
+  clearRaceTimers();
+  refreshDist();
+  show("title");
+  state = S.TITLE;
+});
+
+// シェア＆コピペテキスト
+function getShareText() {
+  const c = CHAR === "dog" ? "🐕" : CHAR === "cat" ? "🐈" : "🏊";
+  const name = playerName ? `【${playerName}】` : "";
+  return `🏊‍♂️ 超・背泳ぎタイムアタック 🏊‍♂️\n${c} ${name} が ${RACE_DIST}m を泳ぎ切った！\nタイム: ${G.finalTime.toFixed(2)}秒 (RT: +${G.rt.toFixed(2)}s)\n#背泳ぎタイムアタック #水泳ゲーム\n${window.location.href}`;
+}
+
+document.getElementById("shareXBtn").addEventListener("click", () => {
+  window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(getShareText()), "_blank");
+});
+
+// 強力な「ワンクリックコピペ」用ハイブリッド関数
+async function copyToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (err) {
+      console.warn("Clipboard API failed, falling back...", err);
+    }
+  }
+
+  try {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.width = "2em";
+    textArea.style.height = "2em";
+    textArea.style.padding = "0";
+    textArea.style.border = "none";
+    textArea.style.outline = "none";
+    textArea.style.boxShadow = "none";
+    textArea.style.background = "transparent";
+    document.body.appendChild(textArea);
+
+    if (navigator.userAgent.match(/ipad|ipod|iphone/i)) {
+      const range = document.createRange();
+      range.selectNodeContents(textArea);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      textArea.setSelectionRange(0, 999999);
+    } else {
+      textArea.select();
+    }
+
+    const successful = document.execCommand("copy");
+    document.body.removeChild(textArea);
+    return successful;
+  } catch (err) {
+    console.error("Fallback copy failed", err);
+    return false;
+  }
+}
+
+// ワンクリックコピーボタンの処理 (リザルト画面のシェア用)
+document.getElementById("copyBtn").addEventListener("click", async () => {
+  const copiedEl = document.getElementById("copied");
+  const success = await copyToClipboard(getShareText());
+
+  if (success) {
+    copiedEl.textContent = "クリップボードにコピーしました！";
+    copiedEl.style.color = "#10b981";
+  } else {
+    copiedEl.textContent = "コピーに失敗しました (スクショを撮ってね)";
+    copiedEl.style.color = "#ef4444";
+  }
+  setTimeout(() => { copiedEl.textContent = ""; }, 3000);
+});
+
+// タイトルからのランキング閲覧
+let currentLdrTab = 50;
+const modalLdrList = document.getElementById("modalLdrList");
+
+function fetchModalLeaderboard() {
+  modalLdrList.innerHTML = `<div class="text-slate-500 text-center py-8">ローカルデータを取得中...</div>`;
+  try {
+    const saved = store.get(localLeaderboardKey);
+    let records = [];
+    if (saved) {
+      records = JSON.parse(saved);
+    }
+
+    records = records.filter(d => d.dist === currentLdrTab);
+    records.sort((a, b) => a.time - b.time);
+
+    renderList(modalLdrList, records.slice(0, 10));
+  } catch (e) {
+    console.error(e);
+    modalLdrList.innerHTML = `<div class="text-slate-500 text-center py-8">データの取得に失敗しました</div>`;
+  }
+}
+
+document.getElementById("showLdrBtn").addEventListener("click", () => {
+  show("ldrModal");
+  currentLdrTab = RACE_DIST;
+  document.getElementById("ldrTab50").className = currentLdrTab === 50 ? "flex-1 py-1 px-3 rounded-full text-xs font-bold bg-cyan-950 text-cyan-300 border border-cyan-700" : "flex-1 py-1 px-3 rounded-full text-xs font-bold bg-slate-800 text-slate-400";
+  document.getElementById("ldrTab100").className = currentLdrTab === 100 ? "flex-1 py-1 px-3 rounded-full text-xs font-bold bg-cyan-950 text-cyan-300 border border-cyan-700" : "flex-1 py-1 px-3 rounded-full text-xs font-bold bg-slate-800 text-slate-400";
+  fetchModalLeaderboard();
+});
+
+document.getElementById("ldrTab50").addEventListener("click", () => {
+  currentLdrTab = 50;
+  document.getElementById("ldrTab50").className = "flex-1 py-1 px-3 rounded-full text-xs font-bold bg-cyan-950 text-cyan-300 border border-cyan-700";
+  document.getElementById("ldrTab100").className = "flex-1 py-1 px-3 rounded-full text-xs font-bold bg-slate-800 text-slate-400";
+  fetchModalLeaderboard();
+});
+
+document.getElementById("ldrTab100").addEventListener("click", () => {
+  currentLdrTab = 100;
+  document.getElementById("ldrTab50").className = "flex-1 py-1 px-3 rounded-full text-xs font-bold bg-slate-800 text-slate-400";
+  document.getElementById("ldrTab100").className = "flex-1 py-1 px-3 rounded-full text-xs font-bold bg-cyan-950 text-cyan-300 border border-cyan-700";
+  fetchModalLeaderboard();
+});
+
+document.getElementById("closeLdrBtn").addEventListener("click", () => {
+  show("title");
+});
+
+// ---------- ルール解説の開閉スクリプト ----------
+const toggleRuleBtn = document.getElementById("toggleRuleBtn");
+const ruleContent = document.getElementById("ruleContent");
+const ruleArrow = document.getElementById("ruleArrow");
+
+toggleRuleBtn.addEventListener("click", () => {
+  const isHidden = ruleContent.classList.contains("hidden");
+  if (isHidden) {
+    ruleContent.classList.remove("hidden");
+    ruleArrow.textContent = "▲";
+    ruleArrow.style.color = "#00f0ff";
+  } else {
+    ruleContent.classList.add("hidden");
+    ruleArrow.textContent = "▼";
+    ruleArrow.style.color = "";
+  }
+});
+
+// 公開前検証用の読み取り専用状態。通常プレイには影響しません。
+window.__swimDebug = {
+  get state() { return state; },
+  get stateName() { return Object.keys(S).find(k => S[k] === state) || String(state); },
+  get raceDistance() { return RACE_DIST; },
+  get canvasSize() { return { width: W, height: H, dpr: DPR }; },
+  get overlay() {
+    const title = document.getElementById("title");
+    const panel = document.getElementById("titlePanel");
+    return {
+      titleHidden: title.classList.contains("hidden"),
+      titleScrollHeight: title.scrollHeight,
+      titleClientHeight: title.clientHeight,
+      panelHeight: panel ? panel.getBoundingClientRect().height : 0
+    };
+  }
+};
+
+</script>
+</body></html>
