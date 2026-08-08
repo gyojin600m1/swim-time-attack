@@ -1366,6 +1366,7 @@
     const glideTotal = m.glidePerfect + m.glideGood + m.glideBad;
     const touchTotal = m.touchPerfect + m.touchGood + m.touchBad;
     const rank = isDq ? getRankings(race.distance) : saveResult(race.distance, race.name, seconds);
+    if (!isDq) { try { window.SWIMRANK && window.SWIMRANK.submit(race.name, race.distance, seconds); } catch (e) {} }
 
     document.getElementById("resultBrand").textContent = isDq ? "DISQUALIFIED" : "FINISH";
     document.getElementById("resultTitle").textContent = `${race.distance}m 平泳ぎ`;
@@ -1896,5 +1897,84 @@
     .catch(function(){});
 })();
 </script>
+
+<!-- ▼ みんなのランキング 自動送信（ゴールした瞬間に送られます・操作不要） -->
+<style>
+#srBar{position:fixed;top:0;left:0;right:0;z-index:2147483000;display:none;
+  padding:calc(7px + env(safe-area-inset-top)) 12px 8px;background:rgba(3,9,20,.95);
+  border-bottom:1px solid #22d3ee;text-decoration:none;
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  color:#e8f4ff;font-size:14px;font-weight:900;text-align:center;line-height:1.35;min-height:48px}
+#srBar.on{display:block}
+#srBar small{display:block;margin-top:2px;font-size:10px;font-weight:700;color:#7fb3d5}
+</style>
+<a id="srBar" href="#"></a>
+<script>
+window.SWIMRANK=(function(){
+  var EV="BR", RANK_URL="../rank/";
+  var PROJECT="flutter-ai-playground-1e47f";
+  var APIKEY="AIzaSyBh64BsqNEpwA0cKkbnnyFVu0hI5LA9P-4";
+  var API="https://firestore.googleapis.com/v1/projects/"+PROJECT+"/databases/(default)/documents/gameScores";
+  var EVDIST={FR:[50,100],BK:[50,100],BR:[50,100],FL:[50,100],IM:[100,200]};
+  function show(html,href){
+    var b=document.getElementById("srBar");
+    if(!b)return;
+    b.innerHTML=html;
+    b.setAttribute("href",href);
+    b.classList.add("on");
+  }
+  function rows(j){
+    return ((j&&j.documents)||[]).map(function(doc){
+      var f=doc.fields||{};
+      return {n:(f.n&&f.n.stringValue)||"",e:(f.e&&f.e.stringValue)||"",
+        d:Number((f.d&&f.d.integerValue)||0),
+        t:Number((f.t&&(f.t.doubleValue!==undefined?f.t.doubleValue:f.t.integerValue))||0)};
+    }).filter(function(r){return r.n&&r.t>0;});
+  }
+  function submit(name,dist,time){
+    try{
+      var t=Math.round(Number(time)*100)/100;
+      if(!isFinite(t)||t<=0||t>3600)return;
+      var d=Number(dist)||EVDIST[EV][0];
+      if(EVDIST[EV].indexOf(d)<0)d=EVDIST[EV][0];
+      var n=String(name||"").trim().slice(0,12)||"ゲスト";
+      try{localStorage.setItem("swimrank:name",n);}catch(e){}
+      var link=RANK_URL+"#"+EV+d;
+      show("🏆 ランキングに送信中…","javascript:void(0)");
+      fetch(API+"?key="+APIKEY,{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({fields:{
+          n:{stringValue:n},e:{stringValue:EV},
+          d:{integerValue:String(d)},t:{doubleValue:t},
+          ts:{integerValue:String(Date.now())}}})})
+        .then(function(r){if(!r.ok)throw new Error(r.status);
+          return fetch(API+"?key="+APIKEY+"&pageSize=300&orderBy=t",{cache:"no-store"});})
+        .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
+        .then(function(j){
+          var list=rows(j).filter(function(r){return r.e===EV&&r.d===d;});
+          var map={};
+          list.forEach(function(r){var k=r.n.toLowerCase();if(!map[k]||r.t<map[k].t)map[k]=r;});
+          var arr=Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return a.t-b.t;});
+          var pos=0;
+          arr.forEach(function(r,i){if(r.n.toLowerCase()===n.toLowerCase())pos=i+1;});
+          if(pos===1){
+            show("👑 全体 1位！ <span style='font-weight:700;opacity:.85'>／"+arr.length+"人中</span>"
+              +"<small>タップでみんなのランキングを見る</small>",link);
+          }else if(pos>1){
+            show("🏆 全体 "+pos+"位 <span style='font-weight:700;opacity:.85'>／"+arr.length+"人中</span>"
+              +"<small>タップでみんなのランキングを見る</small>",link);
+          }else{
+            show("🏆 ランキングに登録しました<small>タップでみんなのランキングを見る</small>",link);
+          }
+        })
+        .catch(function(){
+          show("⚠️ ランキングに送れませんでした<small>電波のいい所でもう一度泳いでね</small>",link);
+        });
+    }catch(e){}
+  }
+  return {submit:submit};
+})();
+</script>
+<!-- ▲ みんなのランキング ここまで -->
+
 </body>
 </html>
