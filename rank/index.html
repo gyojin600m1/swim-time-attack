@@ -32,6 +32,11 @@
   .gap{flex:none;width:56px;text-align:right;font-size:10.5px;color:#64748b;font-variant-numeric:tabular-nums}
   .empty{text-align:center;color:#64748b;font-size:12.5px;padding:26px 8px;line-height:1.9}
   .lead{text-align:center;color:#64748b;font-size:11.5px;line-height:1.8;margin:14px 0}
+  .notice:not(:empty){display:block;margin:10px 0;padding:10px 12px;border-radius:10px;
+    background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.45);color:#fcd34d;
+    font-size:11.5px;font-weight:700;line-height:1.7;text-align:center}
+  .reload{display:block;width:100%;min-height:48px;margin-top:10px;border-radius:11px;
+    border:1px solid #1e3a5f;background:#0b1526;color:#e8f4ff;font-size:13px;font-weight:800}
   .games{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:16px}
   .games a{display:flex;align-items:center;gap:7px;min-height:48px;padding:11px 9px;border:1px solid #1e3a5f;
     border-radius:11px;background:#0b1526;color:#e8f4ff;text-decoration:none;font-size:12.5px;font-weight:800}
@@ -51,7 +56,10 @@
 
   <div class="tabs" id="evTabs"></div>
   <div class="dists" id="distTabs"></div>
+  <div id="notice" class="notice"></div>
   <div id="board"><div class="empty">読み込み中…</div></div>
+
+  <button class="reload" id="reloadBtn" type="button">🔄 更新</button>
 
   <div class="lead">ゲームでゴールすると、タイムはここに自動で載ります。<br>送信ボタンはありません。</div>
 
@@ -100,14 +108,39 @@ function toRows(docs){
     };
   }).filter(function(r){return r.n&&r.e&&r.t>0;});
 }
-function load(){
-  var url=BASE+"?key="+APIKEY+"&pageSize=300&orderBy=t";
+function saveCache(){
+  try{ localStorage.setItem("swimrank:cache",JSON.stringify({at:Date.now(),rows:all})); }catch(e){}
+}
+function loadCache(){
+  try{
+    var c=JSON.parse(localStorage.getItem("swimrank:cache")||"null");
+    if(c&&Array.isArray(c.rows)&&c.rows.length){ all=c.rows; return c.at; }
+  }catch(e){}
+  return 0;
+}
+var lastLoadAt=0, loading=false;
+function load(manual){
+  if(loading)return Promise.resolve();
+  loading=true; lastLoadAt=Date.now();
+  var url=BASE+"?key="+APIKEY+"&pageSize=150&orderBy=t";
   return fetch(url,{cache:"no-store"})
-    .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
-    .then(function(j){all=toRows(j.documents);render();})
-    .catch(function(){
-      if(!all.length)$("board").innerHTML='<div class="empty">ランキングを読み込めませんでした。<br>電波を確認してもう一度開いてください。</div>';
-    });
+    .then(function(r){
+      if(r.status===429){var e=new Error("429");e.quota=true;throw e;}
+      if(!r.ok)throw new Error(r.status);
+      return r.json();
+    })
+    .then(function(j){ all=toRows(j.documents); saveCache(); $("notice").textContent=""; render(); })
+    .catch(function(err){
+      if(err&&err.quota){
+        $("notice").innerHTML='いまランキングの読み込みが一時的に止まっています（無料枠の1日の上限）。'
+          +'<br>日本時間の<b>16時ごろ</b>に自動で復活します。泳いだ記録はちゃんと保存されています。';
+        if(!all.length&&loadCache())render();
+      }else if(!all.length){
+        $("notice").textContent="ランキングを読み込めませんでした。電波を確認してもう一度開いてください。";
+        if(loadCache())render();
+      }
+    })
+    .then(function(){ loading=false; });
 }
 // 同じ名前の人は一番速いタイムだけ残す
 function best(list){
@@ -160,9 +193,15 @@ function boot(){
   var h=(location.hash||"").replace("#","");
   var m=h.match(/^([A-Z]{2})(\d+)$/);
   if(m&&EVMAP[m[1]]){view.e=m[1];view.d=Number(m[2]);}
+  $("reloadBtn").addEventListener("click",function(){ load(true); });
   render();load();
-  setInterval(function(){if(!document.hidden)load();},10000);
-  document.addEventListener("visibilitychange",function(){if(!document.hidden)load();});
+  // 無料枠(1日の読み取り回数)を使い切らないよう、自動更新は90秒に1回だけ。
+  // 開きっぱなしのタブが10秒ごとに読みに行くと、それだけで1日分を消費してしまう。
+  setInterval(function(){ if(!document.hidden) load(); },90000);
+  document.addEventListener("visibilitychange",function(){
+    if(document.hidden)return;
+    if(Date.now()-lastLoadAt>60000) load();
+  });
 }
 boot();
 })();
