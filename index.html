@@ -11,7 +11,7 @@
   body {
     min-height:100vh; background:#030914; color:#e8f4ff;
     font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 16px;
+    display:flex; align-items:center; justify-content:center; padding:24px 16px;
     background-image:radial-gradient(circle at 50% 0%, rgba(34,211,238,.14), transparent 40%);
   }
   .wrap { width:min(440px,100%); text-align:center; }
@@ -31,9 +31,6 @@
   .name { font-size:16px; font-weight:900; }
   .en { display:block; margin-top:2px; color:#7fb3d5; font-size:10px; font-weight:700; letter-spacing:.12em; }
   .note { margin-top:22px; color:#64748b; font-size:11px; line-height:1.7; }
-  a.game.cup { border-color:#fbbf24; background:linear-gradient(120deg,rgba(251,191,36,.14),rgba(15,23,42,.9) 55%); }
-  a.game.cup:hover, a.game.cup:active { border-color:#fbbf24; box-shadow:0 0 18px rgba(251,191,36,.3); }
-  a.game.cup .en { color:#fcd34d; }
 </style>
 </head>
 <body>
@@ -41,13 +38,12 @@
   <h1>超・水泳タイムアタック</h1>
   <div class="sub">SUPER SWIM TIME ATTACK — 全5種目 🏊🔥</div>
 <div class="viewCounterWrap"><span class="viewCounter" id="viewCounter">👀 のべ閲覧 <strong id="viewCount">-</strong> 回</span></div>
-  <a class="game cup" href="./cup/"><span class="emoji">🌀</span><span><span class="name">沖縄 居残りカップ 大会本部</span><span class="en">SHARED RANKING — みんなのタイムと順位がここに並ぶ</span></span></a>
   <a class="game" href="./freestyle/"><span class="emoji">🏊</span><span><span class="name">自由形</span><span class="en">FREESTYLE — 左右交互リズム × 水中ドルフィン</span></span></a>
   <a class="game" href="./backstroke/"><span class="emoji">🛌</span><span><span class="name">背泳ぎ</span><span class="en">BACKSTROKE — ロール & クイックターン × バサロ</span></span></a>
   <a class="game" href="./butterfly/"><span class="emoji">🦋</span><span><span class="name">バタフライ</span><span class="en">BUTTERFLY — 両手同時プル × 両手同時タッチ</span></span></a>
   <a class="game" href="./breaststroke/"><span class="emoji">🐸</span><span><span class="name">平泳ぎ</span><span class="en">BREASTSTROKE — プル→キック→グライド × ひとかきひとけり</span></span></a>
   <a class="game" href="./im/"><span class="emoji">🏅</span><span><span class="name">個人メドレー</span><span class="en">INDIVIDUAL MEDLEY — バタ→背→平→自 4泳法切替</span></span></a>
-  <div class="note">スマホ: 画面タップ / PC: F・J・Space<br>フライング・15m潜水違反・片手タッチは失格。<br>記録はこの端末に保存され、<b style="color:#fcd34d">大会本部</b>に送るとみんなのランキングに並びます。</div>
+  <div class="note">スマホ: 画面タップ / PC: F・J・Space<br>フライング・15m潜水違反・片手タッチは失格。記録はこの端末に保存されます。</div>
 </div>
 <div style="margin:20px auto 10px;padding:0 12px;text-align:center;font-size:11px"><span style="color:#e8f4ff;font-weight:700;animation:blinkNotice 1.6s ease-in-out infinite">&copy; 2026 gyojin600m1 無断複製・再配布を禁じます。</span></div>
 <style>@keyframes blinkNotice{0%,100%{opacity:1}50%{opacity:.5}}</style>
