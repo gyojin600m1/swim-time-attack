@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>沖縄居残りカップ 大会本部 — 超・水泳タイムアタック</title>
+<meta name="description" content="超・水泳タイムアタック全5種目の共有ランキング。同じ種目・同じ距離でタイムと順位がみんなに見えます。">
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#030914; --card:rgba(15,23,42,.92); --line:#1e3a5f;
+    --text:#e8f4ff; --dim:#7fb3d5; --mute:#64748b;
+    --cyan:#22d3ee; --gold:#fbbf24;
+    --male:#1565c0; --female:#b71c6e; --maleText:#6fb7ff; --femaleText:#ff92c2;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    min-height:100vh;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+    background-image:radial-gradient(circle at 50% 0%,rgba(34,211,238,.14),transparent 42%);
+    padding:14px 12px calc(28px + env(safe-area-inset-bottom));
+    -webkit-text-size-adjust:100%;overflow-x:hidden;
+  }
+  .wrap{width:min(520px,100%);margin:0 auto}
+  h1{font-size:clamp(20px,6.2vw,28px);font-weight:900;line-height:1.25;letter-spacing:.02em;
+     background:linear-gradient(90deg,#22d3ee,#3b82f6);-webkit-background-clip:text;background-clip:text;color:transparent;text-align:center}
+  .sub{margin:6px 0 12px;color:#67e8f9;font-size:10px;font-weight:800;letter-spacing:.18em;text-align:center}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px;margin:10px 0}
+  .card h2{font-size:13px;font-weight:900;color:var(--cyan);margin-bottom:9px;letter-spacing:.04em}
+  .hint{color:var(--mute);font-size:11px;line-height:1.65}
+  label.f{display:block;font-size:11px;font-weight:800;color:var(--dim);margin:9px 0 4px}
+  input[type=text],textarea,select{
+    width:100%;background:#0b1526;border:1px solid var(--line);border-radius:10px;color:var(--text);
+    padding:11px 12px;font-size:16px;font-family:inherit;min-height:46px}
+  textarea{min-height:78px;resize:vertical;line-height:1.5;font-size:13px}
+  input:focus,textarea:focus{outline:none;border-color:var(--cyan)}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .row>*{flex:1 1 0;min-width:0}
+  button{font-family:inherit;cursor:pointer}
+  .btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:48px;padding:12px;
+    border-radius:11px;border:1px solid var(--line);background:#0b1526;color:var(--text);
+    font-size:14px;font-weight:800;line-height:1.3;text-decoration:none;text-align:center}
+  .btn:active{transform:translateY(1px)}
+  .btn.p{background:linear-gradient(90deg,#0891b2,#2563eb);border-color:transparent;color:#fff}
+  .btn.g{background:linear-gradient(90deg,#f59e0b,#f43f5e);border-color:transparent;color:#fff}
+  .btn.s{min-height:44px;font-size:12px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{padding:9px 12px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+    border:1px solid var(--line);border-radius:999px;background:#0b1526;color:var(--dim);
+    font-size:12px;font-weight:800;white-space:nowrap}
+  .chip.on{background:rgba(34,211,238,.16);border-color:var(--cyan);color:#a5f3fc}
+  .chip.m.on{background:rgba(21,101,192,.3);border-color:var(--maleText);color:var(--maleText)}
+  .chip.f.on{background:rgba(183,28,110,.3);border-color:var(--femaleText);color:var(--femaleText)}
+  .evtabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .evtabs .chip{width:100%;padding:9px 4px;font-size:11.5px}
+  .status{display:flex;align-items:center;gap:7px;justify-content:center;font-size:11px;font-weight:800;
+    padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:#0b1526;color:var(--dim)}
+  .dot{width:8px;height:8px;border-radius:50%;background:#475569;flex:none}
+  .dot.live{background:#34d399;box-shadow:0 0 8px #34d399;animation:pulse 1.6s infinite}
+  .dot.off{background:#f43f5e}
+  @keyframes pulse{50%{opacity:.35}}
+  .rk{display:flex;align-items:center;gap:10px;padding:10px 11px;margin:7px 0;border-radius:11px;
+    background:#0b1526;border:1px solid #16283f;border-left:5px solid #334155;position:relative}
+  .rk.male{border-left-color:var(--male)}
+  .rk.female{border-left-color:var(--female)}
+  .rk.me{background:rgba(34,211,238,.09);border-color:var(--cyan)}
+  .rk .no{flex:none;width:34px;text-align:center;font-size:15px;font-weight:900;color:var(--dim)}
+  .rk .no.t1{color:var(--gold);font-size:19px}
+  .rk .no.t2{color:#cbd5e1;font-size:17px}
+  .rk .no.t3{color:#d97706;font-size:17px}
+  .rk .who{flex:1 1 auto;min-width:0}
+  .rk .nm{font-size:14px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rk .nm.male{color:var(--maleText)}
+  .rk .nm.female{color:var(--femaleText)}
+  .rk .meta{font-size:10px;color:var(--mute);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rk .tm{flex:none;text-align:right}
+  .rk .tv{font-size:16px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .rk .gap{font-size:10px;color:var(--mute);font-variant-numeric:tabular-nums}
+  .empty{text-align:center;color:var(--mute);font-size:12px;padding:22px 6px;line-height:1.8}
+  .mine{border:1px dashed var(--cyan);border-radius:12px;padding:10px;margin-bottom:8px;
+    background:rgba(34,211,238,.06);font-size:12px;font-weight:800;color:#a5f3fc;text-align:center;line-height:1.6}
+  .games{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .games a{display:flex;align-items:center;gap:7px;padding:11px 9px;min-height:48px;border:1px solid var(--line);
+    border-radius:11px;background:#0b1526;color:var(--text);text-decoration:none;font-size:12.5px;font-weight:800}
+  .games a .e{font-size:17px}
+  .toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);
+    background:#0f172a;border:1px solid var(--cyan);color:#a5f3fc;padding:11px 16px;border-radius:999px;
+    font-size:12.5px;font-weight:800;z-index:90;opacity:0;pointer-events:none;transition:opacity .2s;max-width:92vw;text-align:center}
+  .toast.on{opacity:1}
+  details{border:1px solid var(--line);border-radius:12px;background:var(--card);margin:10px 0}
+  summary{padding:13px;font-size:12.5px;font-weight:900;color:var(--cyan);cursor:pointer;list-style:none;min-height:48px;display:flex;align-items:center}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"＋";margin-left:auto;color:var(--dim);font-weight:900}
+  details[open] summary::after{content:"－"}
+  details .body{padding:0 13px 13px}
+  .foot{margin-top:18px;text-align:center;font-size:10.5px;color:var(--mute);line-height:1.9}
+  .viewCounterWrap{margin:8px 0;text-align:center}
+  .viewCounter{display:none;align-items:center;gap:6px;padding:5px 12px;border:1px solid currentColor;border-radius:999px;font-size:11px;font-weight:800;line-height:1.5;opacity:.7}
+  .viewCounter.on{display:inline-flex}
+  .viewCounter strong{font-size:13px;font-weight:900}
+  .warn{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.4);color:#fda4af;
+    border-radius:10px;padding:9px 11px;font-size:11px;font-weight:700;line-height:1.6;margin-top:8px}
+  .ptcol{flex:none;text-align:right;font-size:11px;color:var(--dim);font-weight:800}
+  @media(max-width:340px){
+    .evtabs{grid-template-columns:repeat(2,1fr)}
+    .games{grid-template-columns:1fr}
+    .rk .tv{font-size:15px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>🌀 沖縄 居残りカップ</h1>
+  <div class="sub">SUPER SWIM TIME ATTACK — 大会本部</div>
+  <div class="viewCounterWrap"><span class="viewCounter" id="viewCounter">👀 のべ閲覧 <strong id="viewCount">-</strong> 回</span></div>
+
+  <div class="status" id="status"><span class="dot" id="dot"></span><span id="statusText">確認中…</span></div>
+
+  <!-- 選手登録 -->
+  <div class="card" id="meCard">
+    <h2>① 選手登録（この端末に保存）</h2>
+    <label class="f">なまえ（ニックネーム推奨・本名フルネームは避ける）</label>
+    <input type="text" id="nameIn" maxlength="12" placeholder="例）はやと / HAYATO">
+    <label class="f">性別</label>
+    <div class="chips">
+      <button class="chip m" data-g="M" type="button">🔵 男子</button>
+      <button class="chip f" data-g="F" type="button">🔴 女子</button>
+    </div>
+    <label class="f">チーム・学校（任意）</label>
+    <input type="text" id="teamIn" maxlength="14" placeholder="例）〇〇中">
+    <div class="row" style="margin-top:11px">
+      <button class="btn p" id="saveMe" type="button">💾 登録する</button>
+    </div>
+  </div>
+
+  <!-- ランキング -->
+  <div class="card">
+    <h2>② ランキング</h2>
+    <div class="evtabs" id="evTabs"></div>
+    <div class="chips" style="margin-top:7px" id="distTabs"></div>
+    <div class="chips" style="margin-top:7px" id="sexTabs">
+      <button class="chip on" data-s="A" type="button">総合</button>
+      <button class="chip m" data-s="M" type="button">🔵 男子</button>
+      <button class="chip f" data-s="F" type="button">🔴 女子</button>
+    </div>
+    <div id="mineBox"></div>
+    <div id="board"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn s" id="refreshBtn" type="button">🔄 更新</button>
+      <button class="btn s g" id="imgBtn" type="button">📸 ストーリー画像</button>
+    </div>
+  </div>
+
+  <!-- ゲームへ -->
+  <div class="card">
+    <h2>③ 泳ぐ（記録は自動で本部に送れます）</h2>
+    <div class="games" id="gameLinks"></div>
+    <div class="hint" style="margin-top:9px">ゴール後、画面の上に出る「🏆 大会本部に記録を送る」を押すだけ。</div>
+  </div>
+
+  <!-- ルーム -->
+  <details id="roomCard">
+    <summary>🛰 大会ルーム（みんなで共有する）</summary>
+    <div class="body">
+      <div class="hint" id="roomInfo"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn p" id="createRoom" type="button">🆕 大会をつくる</button>
+      </div>
+      <div class="row" style="margin-top:7px">
+        <button class="btn s" id="copyLink" type="button">🔗 参加リンクをコピー</button>
+        <button class="btn s" id="copyStory" type="button">📣 告知文をコピー</button>
+      </div>
+      <label class="f">参加リンク / ルームIDを貼って合流</label>
+      <input type="text" id="roomIn" placeholder="https://…#r=xxxxxxxx">
+      <div class="row" style="margin-top:7px">
+        <button class="btn s" id="joinRoom" type="button">➡️ 合流する</button>
+        <button class="btn s" id="leaveRoom" type="button">🚪 ルームを出る</button>
+      </div>
+      <div class="warn">ルームは作成から24時間で自動的に消えます（記録は各自の端末に残ります）。切れたら「🆕 大会をつくる」で作り直すと、手元の記録ごと引き継がれます。</div>
+    </div>
+  </details>
+
+  <!-- 記録を入れる -->
+  <details>
+    <summary>📥 記録コードを貼る / 手入力する</summary>
+    <div class="body">
+      <div class="hint">友だちからDMで届いた記録コード（SW1.… ）をまとめて貼り付けてOK。何個でも一度に読み取ります。</div>
+      <label class="f">記録コード</label>
+      <textarea id="codeIn" placeholder="SW1.xxxxxxxx.xx"></textarea>
+      <button class="btn p" id="addCode" type="button" style="margin-top:8px">➕ 読み取って登録</button>
+      <label class="f" style="margin-top:16px">手入力（ゲームから送れないとき）</label>
+      <div class="row">
+        <select id="mEv"></select>
+        <select id="mDist"></select>
+      </div>
+      <div class="row" style="margin-top:7px">
+        <input type="text" id="mTime" inputmode="decimal" placeholder="タイム 例）34.12 / 1:05.43">
+      </div>
+      <button class="btn s" id="addManual" type="button" style="margin-top:8px">➕ 自分の記録として追加</button>
+    </div>
+  </details>
+
+  <!-- 自分の記録 -->
+  <details>
+    <summary>🗂 自分の記録・データ管理</summary>
+    <div class="body">
+      <div id="myList" class="hint"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn s" id="exportBtn" type="button">📤 全記録を書き出す</button>
+        <button class="btn s" id="clearBtn" type="button">🗑 この端末の記録を消す</button>
+      </div>
+      <textarea id="exportOut" style="margin-top:8px;display:none"></textarea>
+    </div>
+  </details>
+
+  <div class="foot">
+    タイムは自己申告＋ゲームからの自動送信です。<br>
+    <a href="../" style="color:var(--cyan)">← ゲーム一覧にもどる</a><br>
+    <span style="color:var(--text);font-weight:700">&copy; 2026 gyojin600m1 無断複製・再配布を禁じます。</span>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<canvas id="cv" width="1080" height="1920" style="display:none"></canvas>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ 定義 ============ */
+var EVENTS=[
+  {e:"FR",label:"自由形",  emoji:"🏊",url:"../freestyle/",   dists:[50,100]},
+  {e:"BK",label:"背泳ぎ",  emoji:"🛌",url:"../backstroke/",  dists:[50,100]},
+  {e:"BR",label:"平泳ぎ",  emoji:"🐸",url:"../breaststroke/",dists:[50,100]},
+  {e:"FL",label:"バタフライ",emoji:"🦋",url:"../butterfly/",  dists:[50,100]},
+  {e:"IM",label:"個人メドレー",emoji:"🏅",url:"../im/",       dists:[100,200]}
+];
+var EVMAP={};EVENTS.forEach(function(v){EVMAP[v.e]=v;});
+var API="https://jsonblob.com/api/jsonBlob";
+var K={me:"okcup:me",room:"okcup:room",recs:"okcup:recs",view:"okcup:view"};
+var MAXREC=800;
+
+/* ============ 小物 ============ */
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
+function lsGet(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function toast(msg){var t=$("toast");t.textContent=msg;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove("on");},2400);}
+function fmtT(t){
+  t=Number(t);if(!isFinite(t)||t<=0)return "-";
+  if(t<60)return t.toFixed(2);
+  var m=Math.floor(t/60),s=t-m*60;
+  return m+":"+(s<10?"0":"")+s.toFixed(2);
+}
+function parseT(s){
+  s=String(s).trim().replace(/[：'"”]/g,":").replace(/[。､，]/g,".");
+  if(!s)return NaN;
+  var m=s.match(/^(\d{1,2}):(\d{1,2}(?:\.\d{1,2})?)$/);
+  if(m)return parseInt(m[1],10)*60+parseFloat(m[2]);
+  var v=parseFloat(s);
+  return isFinite(v)?v:NaN;
+}
+function hash32(str){var h=2166136261;for(var i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0);}
+function b64e(str){
+  var b=new TextEncoder().encode(str),s="";
+  for(var i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);
+  return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function b64d(s){
+  s=String(s).replace(/-/g,"+").replace(/_/g,"/");
+  while(s.length%4)s+="=";
+  var bin=atob(s),arr=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  return new TextDecoder().decode(arr);
+}
+
+/* ============ 記録コード ============ */
+/* SW1.<base64url(JSON)>.<checksum36>  … JSON={n,g,q,e,d,t,ts} */
+function makeCode(r){
+  var payload=b64e(JSON.stringify({n:r.n,g:r.g||"",q:r.q||"",e:r.e,d:r.d,t:r.t,ts:r.ts}));
+  return "SW1."+payload+"."+hash32(payload).toString(36).slice(-4);
+}
+function readCode(code){
+  var m=String(code).trim().match(/^SW1\.([A-Za-z0-9_-]+)\.([a-z0-9]+)$/);
+  if(!m)return null;
+  if(hash32(m[1]).toString(36).slice(-4)!==m[2])return null;
+  try{
+    var o=JSON.parse(b64d(m[1]));
+    if(!o||!EVMAP[o.e])return null;
+    var t=Number(o.t);
+    if(!isFinite(t)||t<=0||t>3600)return null;
+    return normalize({n:o.n,g:o.g,q:o.q,e:o.e,d:Number(o.d),t:t,ts:Number(o.ts)||Date.now()});
+  }catch(e){return null;}
+}
+function normalize(r){
+  var name=String(r.n||"GUEST").trim().slice(0,12)||"GUEST";
+  var d=Number(r.d)||0;
+  var ev=EVMAP[r.e];
+  if(!ev||ev.dists.indexOf(d)<0)d=d||ev.dists[0];
+  var o={
+    n:name,g:(r.g==="M"||r.g==="F")?r.g:"",q:String(r.q||"").trim().slice(0,14),
+    e:r.e,d:d,t:Math.round(Number(r.t)*100)/100,ts:Number(r.ts)||Date.now()
+  };
+  o.id=hash32(o.n+"|"+o.e+"|"+o.d+"|"+o.t.toFixed(2)+"|"+o.ts).toString(36);
+  return o;
+}
+
+/* ============ データ ============ */
+var me=lsGet(K.me,{n:"",g:"",q:""});
+var room=lsGet(K.room,null);
+var recs=lsGet(K.recs,[]);
+var view={e:"FR",d:50,s:"A"};
+var pushPending=false;
+
+function saveRecs(){
+  recs.sort(function(a,b){return b.ts-a.ts;});
+  if(recs.length>MAXREC)recs=recs.slice(0,MAXREC);
+  lsSet(K.recs,recs);
+}
+function addRecs(list){
+  var seen={};recs.forEach(function(r){seen[r.id]=1;});
+  var added=0;
+  list.forEach(function(r){
+    if(!r||seen[r.id])return;
+    seen[r.id]=1;recs.push(r);added++;
+  });
+  if(added)saveRecs();
+  return added;
+}
+
+/* ============ ルーム同期 ============ */
+function setStatus(kind,text){
+  var d=$("dot");
+  d.className="dot"+(kind==="live"?" live":kind==="off"?" off":"");
+  $("statusText").textContent=text;
+}
+function roomHours(){
+  if(!room||!room.at)return null;
+  var left=24-(Date.now()-room.at)/3600000;
+  return left;
+}
+function renderRoom(){
+  var el=$("roomInfo");
+  if(!room){
+    el.innerHTML="いまは<b>この端末だけ</b>のランキングです。だれか1人が「大会をつくる」→ 参加リンクを配れば、全員のタイムがひとつのランキングに並びます。";
+    setStatus("off","ソロ（共有オフ）");
+  }else{
+    var h=roomHours();
+    var left=h>1?(Math.floor(h)+"時間"):(Math.max(0,Math.round(h*60))+"分");
+    el.innerHTML="ルームID <b>"+esc(room.id.slice(0,8))+"</b> に参加中。<br>のこり約 "+left+" で自動的に消えます。";
+  }
+}
+function shareLink(){
+  return room?(location.origin+location.pathname+"#r="+room.id):"";
+}
+function apiJSON(url,opt){
+  return fetch(url,opt).then(function(r){
+    if(!r.ok)throw new Error("http "+r.status);
+    return r;
+  });
+}
+function createRoom(){
+  setStatus("","大会を作成中…");
+  return apiJSON(API,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({v:1,recs:recs.slice(0,MAXREC)})})
+    .then(function(r){
+      var id=r.headers.get("x-jsonblob-id")||String(r.headers.get("Location")||"").split("/").pop();
+      if(!id)throw new Error("no id");
+      room={id:id,at:Date.now()};
+      lsSet(K.room,room);
+      renderRoom();
+      setStatus("live","共有オン（つながっています）");
+      toast("大会をつくりました！リンクを配ろう");
+      history.replaceState(null,"","#r="+id);
+      return sync(true);
+    })
+    .catch(function(){
+      setStatus("off","作成できませんでした（電波を確認）");
+      toast("作成に失敗。少し待って再挑戦");
+    });
+}
+function sync(force){
+  if(!room)return Promise.resolve();
+  return apiJSON(API+"/"+room.id,{cache:"no-store"})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var remote=(data&&Array.isArray(data.recs))?data.recs.map(normalize):[];
+      var have={};recs.forEach(function(r){have[r.id]=1;});
+      var got=addRecs(remote);
+      var rid={};remote.forEach(function(r){rid[r.id]=1;});
+      var missing=recs.filter(function(r){return !rid[r.id];});
+      var p=Promise.resolve();
+      if(missing.length||force){
+        var merged=recs.slice(0,MAXREC);
+        p=apiJSON(API+"/"+room.id,{method:"PUT",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({v:1,recs:merged})}).catch(function(){});
+      }
+      return p.then(function(){
+        setStatus("live","共有オン・"+recs.length+"本の記録");
+        if(got)render();
+      });
+    })
+    .catch(function(){
+      setStatus("off","つながりません（手元の記録を表示中）");
+    });
+}
+function joinRoom(input){
+  var s=String(input||"").trim();
+  var m=s.match(/[#&?]r=([A-Za-z0-9-]+)/);
+  var id=m?m[1]:(/^[A-Za-z0-9-]{8,}$/.test(s)?s:"");
+  if(!id){toast("リンクが読み取れません");return;}
+  room={id:id,at:Date.now()};
+  lsSet(K.room,room);renderRoom();
+  history.replaceState(null,"","#r="+id);
+  sync(true).then(function(){render();toast("合流しました");});
+}
+
+/* ============ 集計 ============ */
+function bestByPerson(list){
+  var map={};
+  list.forEach(function(r){
+    var k=r.n.toLowerCase();
+    if(!map[k]||r.t<map[k].t){
+      var tries=map[k]?map[k].tries:0;
+      map[k]=Object.assign({},r,{tries:tries});
+    }
+    map[k].tries=(map[k].tries||0)+1;
+    if(!map[k].g&&r.g)map[k].g=r.g;
+    if(!map[k].q&&r.q)map[k].q=r.q;
+  });
+  var out=Object.keys(map).map(function(k){return map[k];});
+  out.sort(function(a,b){return a.t-b.t;});
+  return out;
+}
+function filtered(){
+  var list=recs.filter(function(r){return r.e===view.e&&r.d===view.d;});
+  if(view.s!=="A")list=list.filter(function(r){return r.g===view.s;});
+  return bestByPerson(list);
+}
+var PT=[10,8,7,6,5,4,3,2];
+function overall(){
+  var score={};
+  EVENTS.forEach(function(ev){
+    ev.dists.forEach(function(d){
+      var list=bestByPerson(recs.filter(function(r){return r.e===ev.e&&r.d===d;}));
+      if(view.s!=="A")list=list.filter(function(r){return r.g===view.s;});
+      list.forEach(function(r,i){
+        var k=r.n.toLowerCase();
+        if(!score[k])score[k]={n:r.n,g:r.g,q:r.q,pt:0,ev:0,best:null};
+        score[k].pt+=(PT[i]||1);
+        score[k].ev++;
+        if(!score[k].g&&r.g)score[k].g=r.g;
+        if(i===0)score[k].best=(score[k].best?score[k].best+"・":"")+EVMAP[ev.e].label+d;
+      });
+    });
+  });
+  var out=Object.keys(score).map(function(k){return score[k];});
+  out.sort(function(a,b){return b.pt-a.pt||b.ev-a.ev||a.n.localeCompare(b.n,"ja");});
+  return out;
+}
+
+/* ============ 描画 ============ */
+function gcls(g){return g==="M"?"male":g==="F"?"female":"";}
+function render(){
+  renderTabs();
+  var box=$("board"),mine=$("mineBox");
+  mine.innerHTML="";
+  if(view.e==="ALL"){renderOverall(box);return;}
+  var list=filtered();
+  if(!list.length){
+    box.innerHTML='<div class="empty">この種目はまだ記録なし。<br><b>最初の1位</b>になれるチャンス。</div>';
+    return;
+  }
+  var top=list[0].t;
+  box.innerHTML=list.slice(0,50).map(function(r,i){
+    var isMe=me.n&&r.n.toLowerCase()===me.n.toLowerCase();
+    var gap=i===0?"👑 TOP":"+"+(r.t-top).toFixed(2);
+    return '<div class="rk '+gcls(r.g)+(isMe?" me":"")+'">'
+      +'<div class="no'+(i<3?" t"+(i+1):"")+'">'+(i+1)+'</div>'
+      +'<div class="who"><div class="nm '+gcls(r.g)+'">'+esc(r.n)+(isMe?' <span style="font-size:9px;color:#a5f3fc">YOU</span>':'')+'</div>'
+      +'<div class="meta">'+(r.q?esc(r.q)+" / ":"")+r.tries+"回チャレンジ"+'</div></div>'
+      +'<div class="tm"><div class="tv">'+fmtT(r.t)+'</div><div class="gap">'+gap+'</div></div></div>';
+  }).join("");
+  if(me.n){
+    var idx=-1;
+    list.forEach(function(r,i){if(r.n.toLowerCase()===me.n.toLowerCase())idx=i;});
+    if(idx>=0){
+      mine.innerHTML='<div class="mine">あなたは '+list.length+'人中 <b style="font-size:16px">'+(idx+1)+'位</b>'
+        +(idx===0?'　王者！このまま逃げ切れ':'　1位まで あと '+(list[idx].t-top).toFixed(2)+'秒')+'</div>';
+    }else{
+      mine.innerHTML='<div class="mine">この種目、あなたはまだ未出走。<br>泳げば'+(list.length+1)+'人目のエントリー。</div>';
+    }
+  }
+}
+function renderOverall(box){
+  var list=overall();
+  if(!list.length){box.innerHTML='<div class="empty">まだ記録がありません。</div>';return;}
+  box.innerHTML='<div class="hint" style="margin-bottom:6px">各種目の順位でポイント（1位10・2位8・3位7…）。たくさんの種目に出るほど有利。</div>'
+    +list.slice(0,50).map(function(r,i){
+    var isMe=me.n&&r.n.toLowerCase()===me.n.toLowerCase();
+    return '<div class="rk '+gcls(r.g)+(isMe?" me":"")+'">'
+      +'<div class="no'+(i<3?" t"+(i+1):"")+'">'+(i+1)+'</div>'
+      +'<div class="who"><div class="nm '+gcls(r.g)+'">'+esc(r.n)+'</div>'
+      +'<div class="meta">'+r.ev+'種目出場'+(r.best?" / 1位: "+esc(r.best):"")+'</div></div>'
+      +'<div class="tm"><div class="tv">'+r.pt+'<span style="font-size:10px">pt</span></div></div></div>';
+  }).join("");
+}
+function renderTabs(){
+  var t=$("evTabs");
+  if(!t.dataset.built){
+    t.innerHTML=EVENTS.map(function(v){return '<button class="chip" type="button" data-e="'+v.e+'">'+v.emoji+" "+v.label+'</button>';}).join("")
+      +'<button class="chip" type="button" data-e="ALL">👑 総合</button>';
+    t.dataset.built="1";
+    t.addEventListener("click",function(e){
+      var b=e.target.closest("button[data-e]");if(!b)return;
+      view.e=b.dataset.e;
+      if(view.e!=="ALL")view.d=EVMAP[view.e].dists[0];
+      render();
+    });
+  }
+  Array.prototype.forEach.call(t.querySelectorAll("button"),function(b){b.classList.toggle("on",b.dataset.e===view.e);});
+  var dt=$("distTabs");
+  if(view.e==="ALL"){dt.style.display="none";}
+  else{
+    dt.style.display="flex";
+    dt.innerHTML=EVMAP[view.e].dists.map(function(d){
+      return '<button class="chip'+(d===view.d?" on":"")+'" type="button" data-d="'+d+'">'+d+'m</button>';
+    }).join("");
+  }
+  Array.prototype.forEach.call($("sexTabs").querySelectorAll("button"),function(b){b.classList.toggle("on",b.dataset.s===view.s);});
+}
+function renderMe(){
+  $("nameIn").value=me.n||"";
+  $("teamIn").value=me.q||"";
+  Array.prototype.forEach.call($("meCard").querySelectorAll("button[data-g]"),function(b){
+    b.classList.toggle("on",b.dataset.g===me.g);
+  });
+}
+function renderMyList(){
+  var mine=me.n?recs.filter(function(r){return r.n.toLowerCase()===me.n.toLowerCase();}):[];
+  if(!mine.length){$("myList").innerHTML="まだ記録がありません。";return;}
+  $("myList").innerHTML=mine.slice(0,30).map(function(r){
+    return EVMAP[r.e].emoji+" "+EVMAP[r.e].label+" "+r.d+"m　<b style='color:#e8f4ff'>"+fmtT(r.t)+"</b>";
+  }).join("<br>");
+}
+function renderGames(){
+  $("gameLinks").innerHTML=EVENTS.map(function(v){
+    return '<a href="'+v.url+'"><span class="e">'+v.emoji+'</span>'+v.label+'</a>';
+  }).join("");
+}
+
+/* ============ ストーリー画像 ============ */
+function makeImage(){
+  var cv=$("cv"),c=cv.getContext("2d");
+  var isAll=view.e==="ALL";
+  var list=isAll?overall():filtered();
+  var title=isAll?"総合ランキング":EVMAP[view.e].emoji+" "+EVMAP[view.e].label+" "+view.d+"m";
+  var sexLabel=view.s==="M"?"男子":view.s==="F"?"女子":"総合";
+  var g=c.createLinearGradient(0,0,0,1920);
+  g.addColorStop(0,"#04203a");g.addColorStop(.55,"#030914");g.addColorStop(1,"#0a0f2a");
+  c.fillStyle=g;c.fillRect(0,0,1080,1920);
+  c.fillStyle="rgba(34,211,238,.12)";
+  for(var i=0;i<14;i++){c.fillRect(0,170+i*118,1080,3);}
+  c.textAlign="center";
+  c.fillStyle="#22d3ee";c.font="900 46px sans-serif";
+  c.fillText("🌀 沖縄 居残りカップ",540,190);
+  c.fillStyle="#e8f4ff";c.font="900 74px sans-serif";
+  c.fillText(title,540,300);
+  c.fillStyle="#7fb3d5";c.font="800 36px sans-serif";
+  c.fillText(sexLabel+"ランキング / "+list.length+"人エントリー",540,360);
+  c.textAlign="left";
+  // 人数が少ないときも間延びしないよう、リスト全体を縦方向に中央寄せする
+  var shown=Math.min(list.length,8);
+  var y=470+Math.max(0,(8-shown))*76;
+  list.slice(0,8).forEach(function(r,i){
+    var col=r.g==="M"?"#6fb7ff":r.g==="F"?"#ff92c2":"#e8f4ff";
+    c.fillStyle="rgba(15,23,42,.85)";
+    c.fillRect(70,y-58,940,132);
+    c.fillStyle=r.g==="M"?"#1565c0":r.g==="F"?"#b71c6e":"#334155";
+    c.fillRect(70,y-58,12,132);
+    c.fillStyle=i===0?"#fbbf24":i===1?"#cbd5e1":i===2?"#d97706":"#7fb3d5";
+    c.font="900 "+(i<3?68:54)+"px sans-serif";
+    c.fillText(String(i+1),110,y+22);
+    c.fillStyle=col;c.font="900 56px sans-serif";
+    c.fillText(String(r.n).slice(0,9),215,y+10);
+    c.fillStyle="#64748b";c.font="800 30px sans-serif";
+    c.fillText(isAll?(r.ev+"種目出場"):((r.q?r.q+" / ":"")+r.tries+"回チャレンジ"),217,y+52);
+    c.textAlign="right";
+    c.fillStyle="#e8f4ff";c.font="900 62px sans-serif";
+    c.fillText(isAll?(r.pt+"pt"):fmtT(r.t),985,y+30);
+    c.textAlign="left";
+    y+=152;
+  });
+  if(!list.length){
+    c.textAlign="center";c.fillStyle="#64748b";c.font="800 44px sans-serif";
+    c.fillText("まだ記録なし。最初の1位を取れ。",540,700);
+    c.textAlign="left";
+  }
+  c.textAlign="center";
+  c.fillStyle="#fbbf24";c.font="900 44px sans-serif";
+  c.fillText("キミの記録で塗り替えろ 🔥",540,1780);
+  c.fillStyle="#7fb3d5";c.font="800 30px sans-serif";
+  c.fillText("超・水泳タイムアタック 大会本部",540,1840);
+  cv.toBlob(function(bl){
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(bl);
+    a.download="okinawa-cup-"+(isAll?"overall":view.e+view.d)+".png";
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},4000);
+    toast("画像を保存しました。ストーリーに貼ろう");
+  },"image/png");
+}
+
+/* ============ 入力処理 ============ */
+function saveMe(){
+  var n=$("nameIn").value.trim().slice(0,12);
+  if(!n){toast("なまえを入れてね");return;}
+  me.n=n;me.q=$("teamIn").value.trim().slice(0,14);
+  lsSet(K.me,me);
+  // 既存の自分の記録に性別・チームを反映
+  recs.forEach(function(r){
+    if(r.n.toLowerCase()===me.n.toLowerCase()){r.g=me.g||r.g;r.q=me.q||r.q;}
+  });
+  saveRecs();render();renderMyList();
+  toast("登録しました");
+  if(room)sync(true);
+}
+function intakeCodes(text){
+  var found=String(text).match(/SW1\.[A-Za-z0-9_-]+\.[a-z0-9]+/g)||[];
+  var ok=[],ng=0;
+  found.forEach(function(c){var r=readCode(c);if(r)ok.push(r);else ng++;});
+  var added=addRecs(ok);
+  render();renderMyList();
+  if(added){toast(added+"件の記録を登録しました");if(room)sync(true);}
+  else if(found.length){toast("新しい記録はありませんでした");}
+  else{toast("記録コードが見つかりません");}
+  return added;
+}
+function addManual(){
+  if(!me.n){toast("先に選手登録をしてね");return;}
+  var t=parseT($("mTime").value);
+  if(!isFinite(t)||t<=0||t>3600){toast("タイムの形式を確認（例 34.12）");return;}
+  var r=normalize({n:me.n,g:me.g,q:me.q,e:$("mEv").value,d:Number($("mDist").value),t:t,ts:Date.now()});
+  addRecs([r]);render();renderMyList();$("mTime").value="";
+  toast("追加しました");
+  if(room)sync(true);
+}
+function fillManualSelectors(){
+  $("mEv").innerHTML=EVENTS.map(function(v){return '<option value="'+v.e+'">'+v.label+'</option>';}).join("");
+  function dists(){
+    var ev=EVMAP[$("mEv").value];
+    $("mDist").innerHTML=ev.dists.map(function(d){return '<option value="'+d+'">'+d+'m</option>';}).join("");
+  }
+  $("mEv").addEventListener("change",dists);dists();
+}
+function copy(text,msg){
+  function fallback(){
+    var ta=document.createElement("textarea");
+    ta.value=text;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand("copy");toast(msg);}catch(e){toast("コピーできませんでした");}
+    ta.remove();
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){toast(msg);},fallback);
+  }else fallback();
+}
+
+/* ============ 起動 ============ */
+function boot(){
+  renderMe();renderGames();fillManualSelectors();renderRoom();render();renderMyList();
+
+  $("saveMe").addEventListener("click",saveMe);
+  $("meCard").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-g]");if(!b)return;
+    me.g=b.dataset.g;lsSet(K.me,me);
+    // 入力中の文字を消さないよう、チップの表示だけ切り替える
+    Array.prototype.forEach.call($("meCard").querySelectorAll("button[data-g]"),function(x){
+      x.classList.toggle("on",x.dataset.g===me.g);
+    });
+  });
+  $("distTabs").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-d]");if(!b)return;
+    view.d=Number(b.dataset.d);render();
+  });
+  $("sexTabs").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-s]");if(!b)return;
+    view.s=b.dataset.s;render();
+  });
+  $("refreshBtn").addEventListener("click",function(){render();if(room)sync(true).then(render);toast("更新しました");});
+  $("imgBtn").addEventListener("click",makeImage);
+  $("createRoom").addEventListener("click",createRoom);
+  $("joinRoom").addEventListener("click",function(){joinRoom($("roomIn").value);});
+  $("leaveRoom").addEventListener("click",function(){
+    room=null;try{localStorage.removeItem(K.room);}catch(e){}
+    history.replaceState(null,"",location.pathname);renderRoom();toast("ルームを出ました");
+  });
+  $("copyLink").addEventListener("click",function(){
+    if(!room){toast("先に大会をつくってね");return;}
+    copy(shareLink(),"参加リンクをコピーしました");
+  });
+  $("copyStory").addEventListener("click",function(){
+    if(!room){toast("先に大会をつくってね");return;}
+    copy("🌀沖縄 居残りカップ 開催中\n九中と同じ種目で、もう一度レース。\n嵐の中の1位は誰の手に。\n\n"+shareLink(),"告知文をコピーしました");
+  });
+  $("addCode").addEventListener("click",function(){
+    if(intakeCodes($("codeIn").value))$("codeIn").value="";
+  });
+  $("addManual").addEventListener("click",addManual);
+  $("exportBtn").addEventListener("click",function(){
+    var out=$("exportOut");
+    out.style.display="block";
+    out.value=recs.map(makeCode).join("\n");
+    out.select();
+    toast("この文字を全部コピーして送れば引き継げます");
+  });
+  $("clearBtn").addEventListener("click",function(){
+    if(!confirm("この端末に保存した記録をすべて消します。よろしいですか？"))return;
+    recs=[];saveRecs();render();renderMyList();toast("消しました");
+  });
+
+  // URLハッシュ処理: #r=ルーム / #s=記録コード
+  var h=location.hash||"";
+  var mr=h.match(/[#&]r=([A-Za-z0-9-]+)/);
+  var ms=h.match(/[#&]s=(SW1\.[A-Za-z0-9_-]+\.[a-z0-9]+)/);
+  if(mr&&(!room||room.id!==mr[1])){room={id:mr[1],at:Date.now()};lsSet(K.room,room);renderRoom();}
+  if(ms){
+    var r=readCode(ms[1]);
+    if(r){
+      if(!r.g&&me.g)r.g=me.g;
+      if(!r.q&&me.q)r.q=me.q;
+      if(!me.n){me.n=r.n;lsSet(K.me,me);renderMe();}
+      var added=addRecs([normalize(r)]);
+      render();renderMyList();
+      toast(added?"🏆 記録が本部に届きました！":"その記録はもう登録済みです");
+    }else{
+      toast("記録コードを読み取れませんでした");
+    }
+  }
+  if(mr||ms)history.replaceState(null,"",location.pathname+(room?"#r="+room.id:""));
+
+  if(room){sync(true).then(render);}
+  setInterval(function(){if(!document.hidden&&room)sync(false).then(render);},12000);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden&&room)sync(false).then(render);});
+}
+boot();
+})();
+</script>
+
+<script>
+// 閲覧カウンター: Abacus(無料API)に累計値を保存。1日1回だけ加算し、失敗時は非表示のまま。
+(function(){
+  var NS="gyojin600m1-okinawa-swim-cup";
+  var isLocal=location.protocol==="file:"||/^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname)||location.hostname==="";
+  var KEY=isLocal?"views-dev":"views";
+  var d=new Date();
+  var today=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  var stampKey="viewCounterStamp:"+NS+":"+KEY;
+  var counted=false;
+  try{counted=localStorage.getItem(stampKey)===today;}catch(e){}
+  fetch("https://abacus.jasoncameron.dev/"+(counted?"get":"hit")+"/"+NS+"/"+KEY)
+    .then(function(r){if(!r.ok)throw new Error();return r.json();})
+    .then(function(data){
+      if(typeof data.value!=="number")throw new Error();
+      var el=document.getElementById("viewCounter");
+      if(!el)return;
+      document.getElementById("viewCount").textContent=data.value.toLocaleString("ja-JP");
+      el.classList.add("on");
+      if(!counted){try{localStorage.setItem(stampKey,today);}catch(e){}}
+    })
+    .catch(function(){});
+})();
+</script>
+</body>
+</html>
