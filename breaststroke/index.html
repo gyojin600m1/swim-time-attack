@@ -1176,6 +1176,15 @@
       return;
     }
 
+    // グライドの途中で次のプルに入った場合。ボーナスは付かないが失速もさせない
+    let earlyGlide = false;
+    if (race.cycle === "glide") {
+      earlyGlide = true;
+      race.glidePending = false;
+      race.metrics.glideGood += 1;
+      race.cycle = "pull";
+    }
+
     if (race.cycle !== "pull") {
       race.metrics.pullBad += 1;
       penalize("プルだけ連打で失速", 0.3, 5, 3);
@@ -1207,6 +1216,7 @@
     }
 
     boost *= 0.78 + race.stamina / 250 + race.oxygen / 360;
+    if (earlyGlide) boost *= 0.82;
     race.v = clamp(race.v + boost, 0.45, 5.15);
     race.oxygen = clamp(race.oxygen + 12, 0, 100);
     race.stamina = clamp(race.stamina - 3.4, 0, 100);
@@ -1417,7 +1427,7 @@
 
     const underwater = race.phase === "underwater";
     // 平泳ぎは最も遅い泳法。抵抗を高くしてサージ→グライドの脈動と現実的な平均速度にする
-    const drag = underwater ? 0.27 : 0.82;
+    const drag = underwater ? 0.27 : 0.76;
     race.v -= race.v * drag * dt;
     if (underwater && race.v < 1.45) race.v += 0.3 * dt;
     if (!underwater && race.cycle === "glide") race.v -= race.v * 0.055 * dt;
