@@ -596,8 +596,9 @@ function breathe() {
   game.breathAt = now;
   game.breathCount++;
   if (gap < 1250) {
-    game.vel *= .72;
-    game.stamina = Math.max(0, game.stamina - 2.5);
+    game.vel *= .88;
+    game.stamina = Math.max(0, game.stamina - 1.2);
+    game.oxygen = Math.min(100, game.oxygen + 10);
     setMsg("呼吸しすぎで減速", 650, "#ffbd30");
   } else {
     game.oxygen = Math.min(100, game.oxygen + 30);
@@ -674,7 +675,7 @@ function pairedHands(diffMs) {
   game.rhythmTotal++;
   const strokeGap = now - game.lastStrokeAt;
   const syncScore = Math.max(0, 1 - diffMs / pairWindow);
-  const rhythmScore = game.lastStrokeAt ? Math.max(0, 1 - Math.abs(strokeGap - 900) / 650) : .7;
+  const rhythmScore = game.lastStrokeAt ? Math.max(0, 1 - Math.abs(strokeGap - 900) / 820) : .7;
   const breathGap = now - game.breathAt;
   let breathScore = 1;
   if (breathGap > 4100) breathScore = .55;
@@ -686,7 +687,8 @@ function pairedHands(diffMs) {
   if (inSpurt()) boost *= 1.23;
   // 両手を速く連打しても水を掴めず空回り。落ち着いたテンポこそ最速にする
   if (game.lastStrokeAt && strokeGap < 560) {
-    boost *= .4;
+    // 段差をなくす。560msに近いほど罰は軽く、速すぎるほど重い（連打の抑制はスタミナ側で効かせる）
+    boost *= .55 + .45 * Math.min(1, Math.max(0, strokeGap) / 560);
     game.stamina = Math.max(0, game.stamina - 1.6);
     setMsg("速すぎる - 空回り", 420, "#ffbd30");
   }
@@ -704,7 +706,7 @@ function pairedHands(diffMs) {
     tone(score > .88 ? 740 : 520, .07, "sine", .11);
   } else {
     game.combo = 0;
-    game.vel *= .82;
+    game.vel *= .9;
     setMsg("リズム崩れ - 失速", 620, "#ff4669");
     tone(170, .13, "triangle", .12);
   }
@@ -884,6 +886,7 @@ function update(now) {
       if (Math.random() < .08) setMsg("酸欠", 240, "#ff4669");
     }
     if (game.stamina <= 0) game.vel *= Math.exp(-.82 * dt);
+    game.stamina = Math.min(100, game.stamina + 2.0 * dt);
     game.dist += game.vel * dt;
     if (underwater) game.oxygen = Math.max(0, game.oxygen - 8.5 * dt);
     else {
