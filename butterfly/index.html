@@ -447,8 +447,8 @@ function startSignal() {
     const t0 = ac.currentTime;
     const dur = 0.55;
     const gain = ac.createGain();
-    gain.gain.setValueAtTime(0.28, t0);
-    gain.gain.setValueAtTime(0.28, t0 + dur - 0.05);
+    gain.gain.setValueAtTime(0.34, t0);
+    gain.gain.setValueAtTime(0.34, t0 + dur - 0.05);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
     gain.connect(ac.destination);
     [1000, 1500].forEach((freq, i) => {
@@ -543,6 +543,7 @@ function startSequence() {
       game.signalAt = performance.now();
       game.startAt = game.signalAt;
       game.strobeAt = game.signalAt;
+      try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
       startBeep();
       setMsg("GO!", 700, "#3df28f");
     }, delay));

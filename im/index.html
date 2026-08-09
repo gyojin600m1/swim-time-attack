@@ -327,8 +327,8 @@ function startSignal() {
   try {
     const a = ac(), t0 = a.currentTime, dur = 0.55;
     const g = a.createGain();
-    g.gain.setValueAtTime(0.28, t0);
-    g.gain.setValueAtTime(0.28, t0 + dur - 0.05);
+    g.gain.setValueAtTime(0.34, t0);
+    g.gain.setValueAtTime(0.34, t0 + dur - 0.05);
     g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
     g.connect(a.destination);
     [1000, 1500].forEach((f, i) => {
@@ -438,6 +438,7 @@ function startSequence() {
   // 4) ランダムな静止のあと、電子スタート音＋ストロボで号砲
   const goDelay = 3300 + 700 + Math.random() * 1800; // 4000〜5800ms
   T(() => {
+    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
     startSignal();
     G.beepAt = performance.now();
     G.strobeT = G.beepAt + 320;

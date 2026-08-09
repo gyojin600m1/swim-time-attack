@@ -975,6 +975,7 @@
     schedule(() => { speakMarks(); setFeedback("Take your marks", "#ffd166", 900); }, 2450);
     schedule(() => {
       if (state.mode !== "prestart" || !state.race) return;
+      try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
       startBeep();
       vibrate(40);
       state.mode = "race";
