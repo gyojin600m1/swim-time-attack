@@ -697,7 +697,7 @@ let prevT = performance.now();
 function update(now) {
   const dt = Math.min(0.05, (now - prevT) / 1000);
   prevT = now;
-  G.strokeAnim = Math.max(0, G.strokeAnim - dt * 3.8);
+  G.strokeAnim = Math.max(0, G.strokeAnim - dt * 2.8);
 
   if (G.isBreathing && now > G.breathT) {
     G.isBreathing = false;
@@ -853,10 +853,10 @@ function draw(now) {
     cx.fillText("15m 潜水限界", lx + 4, y15 + (odd ? -6 : 15));
 
     const d = Math.min(UW_LIMIT, distInLeg());
-    const warn = d > 11;
+    const warn = d >= 9;
     cx.fillStyle = warn ? "#ff5252" : "#4fc3f7";
     cx.font = "bold 13px 'Courier New',monospace"; cx.textAlign = "center";
-    cx.fillText("🐬 潜水 " + d.toFixed(1) + "m / 15m" + (warn ? "  浮上しろ！" : ""), W / 2, L.boardH + 16);
+    cx.fillText(warn ? "中央の「浮上」をタップ！" : "🐬 潜水 " + d.toFixed(1) + "m / 15m", W / 2, L.boardH + 16);
   }
 
   // スイマーの描画
@@ -940,6 +940,18 @@ function draw(now) {
     cx.lineWidth = 2.5;
     cx.strokeRect(x0 + 6, zy + 6, W / 2 - 12, L.zoneH - 12);
 
+    // 押した手を明るくし、次の手とリズムを画面で伝える。
+    if (active && !uwNow) {
+      const pressed = G.strokeSide === side ? G.strokeAnim : 0;
+      const next = G.lastSide === "L" ? "R" : "L";
+      const elapsed = G.lastTapT ? (now - G.lastTapT) / 1000 : TARGET;
+      const cue = side === next && !spurtNow ? Math.max(0, 1 - Math.abs(elapsed - TARGET) / .22) : 0;
+      cx.globalAlpha = Math.max(pressed * .3, cue * .18);
+      cx.fillStyle = "#65eaff";
+      cx.fillRect(x0 + 8, zy + 8, W / 2 - 16, L.zoneH - 16);
+      cx.globalAlpha = 1;
+    }
+
     cx.fillStyle = uwNow ? "#9fe0ff" : "#00f0ff"; cx.font = "bold 24px sans-serif"; cx.textAlign = "center";
     cx.fillText(uwNow ? "キック 🐬" : (side === "L" ? "左手 🏊" : "右手 🏊"), x0 + W / 4, zy + L.zoneH / 2 - 5);
 
@@ -965,22 +977,22 @@ function draw(now) {
 
   // 中央ボタン：潜水中は「浮上」、水上では「呼吸」
   if (active && !spurtNow) {
-    const btnW = 100, btnH = 42;
+    const btnW = 140, btnH = 52;
     const bx = W / 2 - btnW / 2;
     const by = zy - 70;
 
     if (G.underwater) {
       // 浮上ボタン（15m接近で警告色）
-      const near = distInLeg() > 11;
+      const near = distInLeg() >= 9;
       const col = near ? "#ff5252" : "#ffb300";
       cx.fillStyle = col;
       cx.shadowBlur = near ? 14 : 8; cx.shadowColor = col;
       cx.beginPath(); cx.roundRect(bx, by, btnW, btnH, 8); cx.fill();
       cx.shadowBlur = 0;
       cx.fillStyle = "#101010"; cx.font = "bold 14px sans-serif"; cx.textAlign = "center";
-      cx.fillText("🆙 浮上", W / 2, by + 19);
+      cx.fillText(near ? "↑ 今すぐ浮上" : "↑ 浮上", W / 2, by + 22);
       cx.fillStyle = "#3a2a00"; cx.font = "9px sans-serif";
-      cx.fillText("(タップ / Space)", W / 2, by + 32);
+      cx.fillText("ここをタップ", W / 2, by + 40);
     } else {
       // 呼吸ボタン
       const col = G.oxygen <= 20 ? "#ff3838" : "#00f0ff";
@@ -989,19 +1001,19 @@ function draw(now) {
       cx.beginPath(); cx.roundRect(bx, by, btnW, btnH, 8); cx.fill();
       cx.shadowBlur = 0;
       cx.fillStyle = "#000"; cx.font = "bold 13px sans-serif"; cx.textAlign = "center";
-      cx.fillText("💨 呼吸", W / 2, by + 19);
+      cx.fillText(G.oxygen <= 35 ? "💨 息継ぎしよう" : "💨 呼吸", W / 2, by + 22);
       cx.fillStyle = "#1e272e"; cx.font = "9px sans-serif";
-      cx.fillText("(タップ / Space)", W / 2, by + 32);
+      cx.fillText("ここをタップ", W / 2, by + 40);
     }
   }
 
   // フィードバックテキスト
   if (G.msg && performance.now() < G.msgT) {
     const col = G.fbColor || "#00f0ff";
-    cx.fillStyle = col; cx.font = "bold 20px sans-serif"; cx.textAlign = "center";
+    cx.fillStyle = col; cx.font = "bold 14px sans-serif"; cx.textAlign = "center";
     let m = G.msg;
     if (G.msg === "ストローク！" && G.fbLabel) m = G.fbLabel;
-    cx.fillText(m, W / 2, zy - 80);
+    cx.fillText(m, W / 2, zy - 86, W - 24);
 
     if (G.msg === "ストローク！" && G.rhythmN) {
       cx.fillStyle = "#829fb8"; cx.font = "10px 'Courier New',monospace";
@@ -1203,7 +1215,7 @@ function tapX(x, y) {
   // 中央ボタンの判定エリア (画面中央上部)
   const L = layout();
   const zy = H - L.zoneH;
-  const isCenterBtn = (y > zy - 74 && y < zy - 28 && x > W / 2 - 50 && x < W / 2 + 50);
+  const isCenterBtn = (y >= zy - 74 && y <= zy - 14 && x >= W / 2 - 76 && x <= W / 2 + 76);
 
   if (G.underwater) {
     // 潜水中：中央ボタンで浮上、左右ゾーンでキック
@@ -1647,7 +1659,7 @@ window.__swimDebug = {
 };
 
 </script>
-<div style="margin:20px auto 10px;padding:0 12px;text-align:center;font-size:11px"><span style="color:#e8f4ff;font-weight:700;animation:blinkNotice 1.6s ease-in-out infinite">&copy; 2026 gyojin600m1 無断複製・再配布を禁じます。</span></div>
+<div style="position:fixed;bottom:0;left:0;right:0;pointer-events:none;text-align:center;font-size:8px;color:#829fb8;opacity:.65">&copy; 2026 gyojin600m1 無断複製・再配布を禁じます。</div>
 <style>@keyframes blinkNotice{0%,100%{opacity:1}50%{opacity:.5}}</style>
 <style>.viewCounterWrap{margin:10px 0}.viewCounter{display:none;align-items:center;gap:6px;padding:5px 12px;border:1px solid currentColor;border-radius:999px;font-size:12px;font-weight:800;line-height:1.5;opacity:.7}.viewCounter.on{display:inline-flex}.viewCounter strong{font-size:14px;font-weight:900}</style>
 <script>
