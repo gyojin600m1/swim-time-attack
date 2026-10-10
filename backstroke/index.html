@@ -151,7 +151,7 @@
         <div>🔵 <b>本格スタート</b>: 短笛のあとロングホイッスルで入水。<b>Take your marks</b>で静止し、電子音で<b>壁を蹴ってスタート</b>。合図前の入力はフライング失格。</div>
         <div>🏊 <b>泳ぎの考え方</b>: 背泳ぎは<b>自由形を上向きにした動き</b>。左右の腕を交互に回し、体の軸をまっすぐ保つほど進みます。</div>
         <div>🐬 <b>バサロ</b>: スタート直後とターン後は水中。左右ゾーンをリズムよく連打して加速し、中央の<b>浮上</b>で15m以内に水面へ。</div>
-        <div>↻ <b>姿勢</b>: 水上で中央ボタンを押すと軸を戻します。押しすぎると少し減速するので、フォームが崩れた時だけ使うのがコツ。</div>
+        <div>↻ <b>姿勢</b>: 左右交互のよいリズムで自然に安定します。崩れた時は中央の「姿勢を整える」で補助できます。</div>
         <div>🚩 <b>5mフラッグ</b>: 壁が近づいたらターン準備。壁際で入力するとクイックターンが決まり、再びバサロへ入ります。</div>
         <div>🔥 <b>ラスト10m</b>: 姿勢よりも腕回し。左右を全力で回して押し切れ！</div>
       </div>
@@ -598,14 +598,8 @@ function stroke(side, now) {
   const dt = (now - G.lastTapT) / 1000;
   G.strokes++;
 
-  // ストロークを重ねると姿勢ゲージが少しずつ崩れる
-  if (!spurt) {
-    G.oxygen = Math.max(0, G.oxygen - 6); // 1かきごとに姿勢ゲージが少し崩れる
-  }
-
   let q, label, color;
   const sameSide = (side === G.lastSide);
-  const lowOxygen = G.oxygen <= 20;
 
   if (spurt) {
     // ラストスパートはなんでもOK!
@@ -637,6 +631,12 @@ function stroke(side, now) {
     G.combo++;
   }
 
+  // 左右交互の安定したリズムで姿勢が整う。崩れたときだけ中央で補助できる。
+  if (!spurt) {
+    const steady = !sameSide && (G.lastTapT === 0 || Math.abs(dt - TARGET) <= TOL / 1000);
+    G.oxygen = Math.max(0, Math.min(100, G.oxygen + (steady ? 8 : -4)));
+  }
+  const lowOxygen = G.oxygen <= 20;
   G.maxCombo = Math.max(G.maxCombo, G.combo);
   G.lastSide = side; G.lastTapT = now;
 
@@ -689,6 +689,7 @@ function doTurn() {
   G.lastKickT = performance.now();
   G.lastSide = null; G.lastTapT = 0;
 
+  G.turnAt = performance.now();
   setMsg(label + "！ 🐬 水中バサロ！", 950);
   splash(0, 18, "#ffffff");
 }
@@ -735,7 +736,7 @@ let prevT = performance.now();
 function update(now) {
   const dt = Math.min(0.05, (now - prevT) / 1000);
   prevT = now;
-  G.strokeAnim = Math.max(0, G.strokeAnim - dt * 3.8);
+  G.strokeAnim = Math.max(0, G.strokeAnim - dt * 2.8);
 
   if (G.isBreathing && now > G.breathT) {
     G.isBreathing = false;
@@ -859,9 +860,10 @@ function draw(now) {
     cx.fillRect(lx, odd ? yWall : yWall - zH, laneW, zH);
     cx.globalAlpha = 1;
 
-    if (distInLeg() >= 22) {
-      cx.fillStyle = "#00f0ff"; cx.font = "bold 20px sans-serif"; cx.textAlign = "center";
-      cx.fillText("💡 ターン! いまだ!!", W / 2, odd ? yWall + zH + 25 : yWall - zH - 15);
+    if (distInLeg() >= 20) {
+      cx.fillStyle = "#00f0ff"; cx.font = "bold 14px sans-serif"; cx.textAlign = "center";
+      const wallCue = distInLeg() >= 24.3 ? "今！タップでターン" : distInLeg() >= 23 ? "タップでターン・もう少しでベスト" : "🚩 あと " + (25 - distInLeg()).toFixed(1) + "m・ターン準備";
+      cx.fillText(wallCue, W / 2, odd ? yWall + zH + 25 : yWall - zH - 15, W - 24);
     }
   }
 
@@ -891,10 +893,10 @@ function draw(now) {
     cx.fillText("15m 潜水限界", lx + 4, y15 + (odd ? -6 : 15));
 
     const d = Math.min(UW_LIMIT, distInLeg());
-    const warn = d > 11;
+    const warn = d >= 9;
     cx.fillStyle = warn ? "#ff5252" : "#4fc3f7";
     cx.font = "bold 13px 'Courier New',monospace"; cx.textAlign = "center";
-    cx.fillText("🐬 潜水 " + d.toFixed(1) + "m / 15m" + (warn ? "  浮上しろ！" : ""), W / 2, L.boardH + 16);
+    cx.fillText(warn ? "中央の「浮上」をタップ！" : "🐬 バサロ " + d.toFixed(1) + "m / 15m", W / 2, L.boardH + 16);
   }
 
   // スイマーの描画
@@ -978,6 +980,17 @@ function draw(now) {
     cx.lineWidth = 2.5;
     cx.strokeRect(x0 + 6, zy + 6, W / 2 - 12, L.zoneH - 12);
 
+    if (active && !uwNow) {
+      const pressed = G.strokeSide === side ? G.strokeAnim : 0;
+      const next = G.lastSide === "L" ? "R" : "L";
+      const elapsed = G.lastTapT ? (now - G.lastTapT) / 1000 : TARGET;
+      const cue = side === next && !spurtNow ? Math.max(0, 1 - Math.abs(elapsed - TARGET) / .22) : 0;
+      cx.globalAlpha = Math.max(pressed * .3, cue * .18);
+      cx.fillStyle = "#65eaff";
+      cx.fillRect(x0 + 8, zy + 8, W / 2 - 16, L.zoneH - 16);
+      cx.globalAlpha = 1;
+    }
+
     cx.fillStyle = uwNow ? "#9fe0ff" : "#00f0ff"; cx.font = "bold 24px sans-serif"; cx.textAlign = "center";
     cx.fillText(uwNow ? "バサロ 🐬" : (side === "L" ? "左腕 ↺" : "右腕 ↻"), x0 + W / 4, zy + L.zoneH / 2 - 5);
 
@@ -992,7 +1005,7 @@ function draw(now) {
   cx.fillStyle = G.oxygen > 20 ? "#3ae374" : "#ff4d4d";
   cx.fillRect(12, barY, (W / 2 - 24) * (G.oxygen / 100), 8);
   cx.fillStyle = "#829fb8"; cx.font = "10px sans-serif"; cx.textAlign = "left";
-  cx.fillText("姿勢 AXIS (崩れたら中央)", 12, barY - 4);
+  cx.fillText("姿勢（リズムで回復）", 12, barY - 4);
 
   // スタミナバー
   cx.fillStyle = "#091c2c"; cx.fillRect(W / 2 + 12, barY, W / 2 - 24, 8);
@@ -1003,22 +1016,22 @@ function draw(now) {
 
   // 中央ボタン：潜水中は「浮上」、水上では「姿勢」
   if (active && !spurtNow) {
-    const btnW = 100, btnH = 42;
+    const btnW = 140, btnH = 52;
     const bx = W / 2 - btnW / 2;
     const by = zy - 70;
 
     if (G.underwater) {
       // 浮上ボタン（15m接近で警告色）
-      const near = distInLeg() > 11;
+      const near = distInLeg() >= 9;
       const col = near ? "#ff5252" : "#ffb300";
       cx.fillStyle = col;
       cx.shadowBlur = near ? 14 : 8; cx.shadowColor = col;
       cx.beginPath(); cx.roundRect(bx, by, btnW, btnH, 8); cx.fill();
       cx.shadowBlur = 0;
       cx.fillStyle = "#101010"; cx.font = "bold 14px sans-serif"; cx.textAlign = "center";
-      cx.fillText("🆙 浮上", W / 2, by + 19);
+      cx.fillText(near ? "↑ 今すぐ浮上" : "↑ 浮上", W / 2, by + 22);
       cx.fillStyle = "#3a2a00"; cx.font = "9px sans-serif";
-      cx.fillText("(タップ / Space)", W / 2, by + 32);
+      cx.fillText("ここをタップ", W / 2, by + 40);
     } else {
       // 姿勢ボタン
       const col = G.oxygen <= 20 ? "#ff3838" : "#00f0ff";
@@ -1027,19 +1040,19 @@ function draw(now) {
       cx.beginPath(); cx.roundRect(bx, by, btnW, btnH, 8); cx.fill();
       cx.shadowBlur = 0;
       cx.fillStyle = "#000"; cx.font = "bold 13px sans-serif"; cx.textAlign = "center";
-      cx.fillText("↻ 姿勢", W / 2, by + 19);
+      cx.fillText("↻ 姿勢を整える", W / 2, by + 22);
       cx.fillStyle = "#1e272e"; cx.font = "9px sans-serif";
-      cx.fillText("(タップ / Space)", W / 2, by + 32);
+      cx.fillText("困ったときにタップ", W / 2, by + 40);
     }
   }
 
   // フィードバックテキスト
   if (G.msg && performance.now() < G.msgT) {
     const col = G.fbColor || "#00f0ff";
-    cx.fillStyle = col; cx.font = "bold 20px sans-serif"; cx.textAlign = "center";
+    cx.fillStyle = col; cx.font = "bold 14px sans-serif"; cx.textAlign = "center";
     let m = G.msg;
     if (G.msg === "ストローク！" && G.fbLabel) m = G.fbLabel;
-    cx.fillText(m, W / 2, zy - 80);
+    cx.fillText(m, W / 2, zy - 86, W - 24);
 
     if (G.msg === "ストローク！" && G.rhythmN) {
       cx.fillStyle = "#829fb8"; cx.font = "10px 'Courier New',monospace";
@@ -1072,14 +1085,18 @@ function drawSwimmer(now) {
   cx.globalAlpha = 1;
 
   const axisDrift = (100 - G.oxygen) / 100;
-  const roll = Math.sin(now / 180) * 0.16 + (G.strokeSide === "L" ? -1 : 1) * G.strokeAnim * 0.12 + axisDrift * Math.sin(now / 90) * 0.18;
+  const roll = Math.sin(now / 180) * 0.06 + (G.strokeSide === "L" ? -1 : 1) * Math.sin(Math.PI * G.strokeAnim) * 0.32 + axisDrift * Math.sin(now / 90) * 0.18;
   cx.rotate(roll);
+
+  if (G.turnAt && now - G.turnAt < 360) {
+    const turnProgress = Math.max(0, (now - G.turnAt) / 360);
+    cx.scale(1, Math.max(.2, Math.abs(Math.cos(turnProgress * Math.PI))));
+  }
 
   if (gliding) {
     drawBackCore(C, u, now, true);
     drawStreamlineArms(C, u);
     drawDolphinLegs(C, u, kick, 3.4);
-    drawBackstrokeBadge(u, "BASALO", "15m以内に浮上");
     return;
   }
 
@@ -1091,7 +1108,6 @@ function drawSwimmer(now) {
   }
   drawBackCore(C, u, now, false);
   drawFlutterLegs(C, u, kick);
-  drawBackstrokeBadge(u, "BACKSTROKE", "自由形を上向きに");
 }
 
 function drawBackCore(C, u, now, gliding) {
@@ -1233,7 +1249,7 @@ function tapX(x, y) {
   // 中央ボタンの判定エリア (画面中央上部)
   const L = layout();
   const zy = H - L.zoneH;
-  const isCenterBtn = (y > zy - 74 && y < zy - 28 && x > W / 2 - 50 && x < W / 2 + 50);
+  const isCenterBtn = (y >= zy - 74 && y <= zy - 14 && x >= W / 2 - 76 && x <= W / 2 + 76);
 
   if (G.underwater) {
     // 潜水中：中央ボタンで浮上、左右ゾーンでキック
@@ -1677,7 +1693,7 @@ window.__swimDebug = {
 };
 
 </script>
-<div style="margin:20px auto 10px;padding:0 12px;text-align:center;font-size:11px"><span style="color:#e8f4ff;font-weight:700;animation:blinkNotice 1.6s ease-in-out infinite">&copy; 2026 gyojin600m1 無断複製・再配布を禁じます。</span></div>
+<div style="position:fixed;bottom:0;left:0;right:0;pointer-events:none;text-align:center;font-size:8px;color:#829fb8;opacity:.65">&copy; 2026 gyojin600m1 無断複製・再配布を禁じます。</div>
 <style>@keyframes blinkNotice{0%,100%{opacity:1}50%{opacity:.5}}</style>
 <style>.viewCounterWrap{margin:10px 0}.viewCounter{display:none;align-items:center;gap:6px;padding:5px 12px;border:1px solid currentColor;border-radius:999px;font-size:12px;font-weight:800;line-height:1.5;opacity:.7}.viewCounter.on{display:inline-flex}.viewCounter strong{font-size:14px;font-weight:900}</style>
 <script>
