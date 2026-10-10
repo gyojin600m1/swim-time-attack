@@ -715,6 +715,8 @@ function pairedHands(diffMs) {
   game.oxygen = Math.max(0, game.oxygen - (breathGap > 3600 ? 4.5 : 2.1));
   game.lastStrokeAt = now;
   game.phase = 1;
+  game.kickAnim = 1;
+  if (syncScore > .65) vibrate(18);
   game.laneShake = Math.min(1, game.laneShake + .22);
   if (score > .58) {
     game.goodRhythm++;
@@ -998,7 +1000,8 @@ function drawSwimmer(now) {
   ctx.save();
   ctx.translate(W / 2, y);
   ctx.rotate(dir);
-  const bob = Math.sin(now / 130) * 1.5 * u + game.kickAnim * 2.8 * u;
+  const swimCycle = (1 - game.phase) * Math.PI * 2;
+  const bob = inUnderwater() ? Math.sin(now / 130) * 1.5 * u : Math.sin(swimCycle) * game.phase * 2 * u;
   ctx.translate(0, bob);
   if (inUnderwater()) {
     ctx.shadowColor = "#35d5ff";
@@ -1017,18 +1020,17 @@ function drawSwimmer(now) {
     for (const s of [-1, 1]) {
       let hx, hy, mx, my;
       if (game.phase > 0) {
-        const p = ph;
-        const angle = (-62 + p * 142) * Math.PI / 180;
+        const p = ph < .55 ? ph / .55 : 1 - (ph - .55) / .45;
+        const angle = (-80 + p * 165) * Math.PI / 180;
         const len = (10 + Math.sin(p * Math.PI) * 2.5) * u;
         hx = s * (4 * u + Math.cos(angle) * len);
         hy = -2 * u + Math.sin(angle) * len;
         mx = s * (3 * u + Math.cos(angle - .25) * len * .55);
         my = -2 * u + Math.sin(angle - .25) * len * .55;
       } else {
-        const wing = Math.sin(now / 170) * 3 * u;
-        hx = s * (11 * u + wing);
-        hy = -7 * u;
-        mx = s * 8 * u;
+        hx = s * 3 * u;
+        hy = -20 * u;
+        mx = s * 5 * u;
         my = -12 * u;
       }
       ctx.strokeStyle = game.phase > .42 ? "#b88969" : "#f4c49a";
@@ -1048,16 +1050,17 @@ function drawSwimmer(now) {
   ctx.strokeStyle = "#f4c49a";
   ctx.lineWidth = 3 * u;
   ctx.lineCap = "round";
-  const k = Math.sin(now / 80) * game.kickAnim * 6 * u;
+  const k = (inUnderwater() ? Math.sin(now / 80) * game.kickAnim : Math.sin(swimCycle * 2 - .7) * game.phase) * 5 * u;
   ctx.beginPath();
   ctx.moveTo(-1.8 * u, 12 * u);
   ctx.quadraticCurveTo(-4 * u, 17 * u + k, -2.5 * u, 21 * u);
   ctx.moveTo(1.8 * u, 12 * u);
-  ctx.quadraticCurveTo(4 * u, 17 * u - k, 2.5 * u, 21 * u);
+  ctx.quadraticCurveTo(4 * u, 17 * u + k, 2.5 * u, 21 * u);
   ctx.stroke();
   ctx.fillStyle = "#ffd45b";
   ctx.beginPath();
-  ctx.arc(0, -8 * u, 4.7 * u, 0, Math.PI * 2);
+  const breathing = !inUnderwater() && now - game.breathAt < 420;
+  ctx.arc(0, (-8 - (breathing ? 2 : 0)) * u, 4.7 * u, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = "#06111c";
   ctx.fillRect(-3 * u, -9 * u, 6 * u, 1.6 * u);
@@ -1097,9 +1100,9 @@ function bar(x, y, w, h, val, ok, bad) {
 function drawControls(l) {
   const c = l.control;
   const labels = [
-    { x: 6, w: c.leftW - 10, title: "LEFT / F", sub: inUnderwater() ? "ドルフィン" : "同時プル" },
-    { x: c.leftW + 4, w: c.centerW - 8, title: "SPACE", sub: inUnderwater() ? "浮上" : "呼吸" },
-    { x: c.leftW + c.centerW + 4, w: c.leftW - 10, title: "RIGHT / J", sub: inUnderwater() ? "ドルフィン" : "同時プル" }
+    { x: 6, w: c.leftW - 10, title: "左手", sub: inUnderwater() ? "ドルフィン" : "両手で同時" },
+    { x: c.leftW + 4, w: c.centerW - 8, title: inUnderwater() ? "浮上" : "呼吸", sub: inUnderwater() && distInLeg() >= 9 ? "今タップ！" : "ここをタップ" },
+    { x: c.leftW + c.centerW + 4, w: c.leftW - 10, title: "右手", sub: inUnderwater() ? "ドルフィン" : "両手で同時" }
   ];
   labels.forEach((z, i) => {
     const active = inSpurt();
@@ -1108,6 +1111,16 @@ function drawControls(l) {
     ctx.strokeStyle = i === 1 ? "#ffbd30" : active ? "#ff4669" : "#1d6b99";
     ctx.lineWidth = 2;
     ctx.strokeRect(z.x, c.y + 6, z.w, c.h - 12);
+    const urgent = i === 1 && inUnderwater() && distInLeg() >= 9;
+    const elapsed = game.lastStrokeAt ? performance.now() - game.lastStrokeAt : STROKE_IDEAL;
+    const ready = !inUnderwater() && i !== 1 ? Math.max(0, 1 - Math.abs(elapsed - STROKE_IDEAL) / 180) : 0;
+    const pulse = i !== 1 && !inUnderwater() ? Math.max(game.phase * .28, ready * .18) : 0;
+    if (urgent || pulse > 0) {
+      ctx.globalAlpha = urgent ? .38 + .12 * Math.sin(performance.now() / 120) : pulse;
+      ctx.fillStyle = urgent ? "#ff5252" : "#65eaff";
+      ctx.fillRect(z.x + 2, c.y + 8, z.w - 4, c.h - 16);
+      ctx.globalAlpha = 1;
+    }
     ctx.fillStyle = i === 1 ? "#ffd45b" : "#edf8ff";
     ctx.font = "900 15px sans-serif";
     ctx.textAlign = "center";
@@ -1333,7 +1346,7 @@ $("nameInput").addEventListener("input", () => {
 })();
 </script>
 <style>.viewCounterWrap{margin:10px 0}.viewCounter{display:none;align-items:center;gap:6px;padding:5px 12px;border:1px solid currentColor;border-radius:999px;font-size:12px;font-weight:800;line-height:1.5;opacity:.7}.viewCounter.on{display:inline-flex}.viewCounter strong{font-size:14px;font-weight:900}</style>
-<div style="margin:20px auto 10px;padding:0 12px;text-align:center;font-size:11px"><span style="color:#e8f4ff;font-weight:700;animation:blinkNotice 1.6s ease-in-out infinite">&copy; 2026 gyojin600m1 無断複製・再配布を禁じます。</span></div>
+<div style="position:fixed;bottom:0;left:0;right:0;pointer-events:none;text-align:center;font-size:8px;color:#829fb8;opacity:.65">&copy; 2026 gyojin600m1 無断複製・再配布を禁じます。</div>
 <style>@keyframes blinkNotice{0%,100%{opacity:1}50%{opacity:.5}}</style>
 <script>
 // 閲覧カウンター: Abacus(無料API)に累計値を保存。1日1回だけ加算し、失敗時は非表示のまま。
