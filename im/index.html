@@ -2,7 +2,7 @@
 <html lang="ja"><head>
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'none';
-    script-src 'unsafe-inline';
+    script-src 'self' 'unsafe-inline';
     style-src 'unsafe-inline';
     img-src data: https:;
     font-src https:;
@@ -68,6 +68,11 @@
     50% { box-shadow: inset 0 0 40px rgba(255, 0, 80, 0.6); }
   }
   .low-oxygen-alert { animation: danger-pulse 1s infinite; }
+</style>
+<style>
+button{min-height:48px!important;touch-action:manipulation}
+input[type="text"]{min-height:48px;font-size:16px}
+@media(max-width:360px){#titlePanel h1{font-size:23px;line-height:1.2}.opt{padding-left:6px;padding-right:6px}}
 </style>
 </head>
 <body class="relative">
@@ -213,6 +218,7 @@
   </div>
 </div>
 
+<script src="../swimmer-v2.js?v=20261106"></script>
 <script>
 // ---------- ローカルでの音声読み上げ (Web Speech API) ----------
 let audioUnlocked = false;
@@ -402,6 +408,8 @@ function layout() {
 }
 
 function resetRace() {
+  const rankBar=document.getElementById("srBar");if(rankBar)rankBar.classList.remove("on");
+  G.wallQueued = false; G.finishQueued = false; G.visualTurnAt = 0; G.wallInputDist=0; G.lastCenterAt=0; G.pairPending=null;
   Object.assign(G, {
     dist:0, vel:0, leg:1, rt:0, split50:0, finalTime:0, stamina:100, oxygen:100,
     lastSide:null, lastTapT:0,
@@ -540,6 +548,8 @@ function doBreath() {
   // 自由形ラスト10mは全力連打モードなので息継ぎ不可
   if (state !== S.SWIM || !G.dove || G.isBreathing || G.underwater || (inSpurt() && currentStroke().id === "free")) return;
   const s = currentStroke();
+  if (G.lastCenterAt && performance.now()-G.lastCenterAt < 600) return;
+  G.lastCenterAt=performance.now();
 
   if (s.id === "back") {
     G.backBalance *= 0.35;
@@ -578,12 +588,24 @@ function onTap(side) {
   if (state !== S.SWIM) return;
   if (!G.dove) { dive(); return; }
 
-  const otherT = side === "L" ? G.lastRightT : G.lastLeftT;
-  const twoHand = (now - otherT) < 180;
-  if (side === "L") G.lastLeftT = now; else G.lastRightT = now;
-
   if (G.underwater) { doKick(now); return; }
-
+  const pairedStroke = currentStroke().id === 'fly' || currentStroke().id === 'breast';
+  if (pairedStroke) {
+    if (G.pairPending && G.pairPending.side !== side && now-G.pairPending.at <= 200) {
+      clearTimeout(G.pairPending.timer); G.pairPending=null;
+      commitTap(side, now, true); return;
+    }
+    if (G.pairPending) return;
+    const pending={side,at:now}; G.pairPending=pending;
+    pending.timer=setTimeout(()=>{
+      if(G.pairPending!==pending || state!==S.SWIM)return;
+      G.pairPending=null; commitTap(side,performance.now(),false);
+    },200);
+    return;
+  }
+  commitTap(side,now,false);
+}
+function commitTap(side,now,twoHand) {
   const s = currentStroke();
   if (G.leg < LEGS() && distInLeg() >= 23) {
     doTurn(twoHand || !(s.id === "fly" || s.id === "breast"));
@@ -597,7 +619,7 @@ function onTap(side) {
       setMsg("最後は両手タッチ！", 500);
       return;
     }
-    G.dist = TOTAL(); finishRace(); return;
+    finishRace(); return;
   }
 
   stroke(side, now, twoHand);
@@ -665,7 +687,7 @@ function stroke(side, now, twoHand) {
 
   const cap = s.id === "breast" ? 2.1 : s.id === "back" ? 2.2 : 2.25;
   // ターン直後・ブレイクアウトのキャップ超え速度をストロークで殺さず、抵抗で自然に落とす
-  G.vel = Math.max(G.vel, Math.min(cap, G.vel + 0.62 * q * sf));
+  G.vel = Math.max(G.vel, Math.min(cap, G.vel + 0.62 * q * sf * (spurt || !G.lastTapT ? 1 : Math.min(1, Math.max(0, dt) / target))));
   G.strokeAnim = 1; G.strokeSide = side;
   G.strokeScores[G.strokeIndex] = Math.max(0, Math.min(100, G.strokeScores[G.strokeIndex] + (q >= 1 ? 0.55 : -0.28)));
 
@@ -681,7 +703,13 @@ function stroke(side, now, twoHand) {
 }
 
 function doTurn(legalTouch) {
-  const d = distInLeg();
+  if (distInLeg() < POOLLEN - .02) {
+    if(!G.wallQueued) G.wallInputDist=distInLeg();
+    G.wallQueued = true; G.queuedTouch = legalTouch;
+    setMsg("タッチ準備！壁まで泳ごう", 500); return;
+  }
+  G.wallQueued = false; G.visualTurnAt = performance.now();
+  const d = G.wallInputDist || distInLeg(); G.wallInputDist=0;
   const s = currentStroke();
   let q, label;
 
@@ -714,6 +742,8 @@ function doTurn(legalTouch) {
 }
 
 function finishRace() {
+  if (G.dist < TOTAL() - .001) { G.finishQueued=true; setMsg("あと少し！壁まで伸ばそう",500); return; }
+  G.finishQueued=false;
   if (!G.lapTimes[G.strokeIndex]) G.lapTimes[G.strokeIndex] = (performance.now() - (G.lapStartT || G.raceStart)) / 1000;
   G.finalTime = (performance.now() - G.raceStart) / 1000;
   state = S.FINISH;
@@ -779,7 +809,12 @@ function update(now) {
     else if (cs === "breast") G.oxygen = Math.min(100, G.oxygen + 3.5 * dt);
   }
 
+  if (G.wallQueued || G.finishQueued) G.vel = Math.max(.9, G.vel);
   G.dist += G.vel * dt;
+  if (G.wallQueued && distInLeg() >= POOLLEN - .02) {
+    doTurn(G.queuedTouch);
+  }
+  if (G.finishQueued && G.dist >= TOTAL()) { G.dist=TOTAL(); finishRace(); return; }
   // 中間点(50m/100m)はターン地点でもあり、ターンがdistを直接セットするため
   // 「跨ぎ」判定では取りこぼす。初めて中間を超えた時点で記録する
   if (!G.midSplit && G.dist >= RACE_DIST / 2) {
@@ -1128,6 +1163,16 @@ function draw(now) {
 
 // ---------- 個人メドレー用：泳法別スイマー描画 ----------
 function drawSwimmer(now) {
+  if (CHAR === 'human' && window.SwimBody) {
+    const st = currentStroke().id;
+    const duration = st === 'breast' ? 950 : st === 'fly' ? 700 : 460;
+    SwimBody.draw(cx, {stroke:st, size:Math.min(W,430)/150, now,
+      phase:G.lastTapT ? Math.min(1,(now-G.lastTapT)/duration) : 1,
+      underwater:G.underwater, breathing:G.isBreathing, side:G.strokeSide,
+      speed:G.vel, turn:G.visualTurnAt ? (now-G.visualTurnAt)/360 : 0,
+      finish:state===S.FINISH});
+    return;
+  }
   const u = Math.min(W, 430) / 100 * 0.65;
   const s = currentStroke();
   const C = SWIM_COLORS[CHAR] || SWIM_COLORS.human;
@@ -1960,12 +2005,12 @@ window.SWIMRANK=(function(){
   function readCache(){
     try{
       var c=JSON.parse(localStorage.getItem(CACHE)||"null");
-      if(c&&Array.isArray(c.rows))return c;
+      if(c&&c.complete===true&&Array.isArray(c.rows))return c;
     }catch(e){}
     return null;
   }
   function writeCache(rows){
-    try{ localStorage.setItem(CACHE,JSON.stringify({at:Date.now(),rows:rows})); }catch(e){}
+    try{ localStorage.setItem(CACHE,JSON.stringify({at:Date.now(),rows:rows,complete:true})); }catch(e){}
   }
   function toRows(j){
     return ((j&&j.documents)||[]).map(function(doc){
@@ -1977,7 +2022,7 @@ window.SWIMRANK=(function(){
   }
   function placeOf(rows,n,d,t){
     var list=rows.filter(function(r){return r.e===EV&&r.d===d;}).concat([{n:n,e:EV,d:d,t:t}]);
-    var map={};
+    var map=Object.create(null);
     list.forEach(function(r){var k=r.n.toLowerCase();if(!map[k]||r.t<map[k].t)map[k]=r;});
     var arr=Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return a.t-b.t;});
     var pos=0;
@@ -1998,7 +2043,8 @@ window.SWIMRANK=(function(){
       var n=String(name||"").trim().slice(0,12)||"ゲスト";
       try{localStorage.setItem("swimrank:name",n);}catch(e){}
       var link=RANK_URL+"#"+EV+d;
-      show("🏆 ランキングに送信中…","javascript:void(0)");
+      var saved = false;
+      show("🏆 ランキングに送信中…","#");
       fetch(API+"?key="+APIKEY,{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({fields:{
           n:{stringValue:n},e:{stringValue:EV},
@@ -2006,6 +2052,7 @@ window.SWIMRANK=(function(){
           ts:{integerValue:String(Date.now())}}})})
         .then(function(r){
           if(!r.ok)throw new Error(r.status);
+          saved = true;
           // 無料枠を節約: 90秒以内に読み込んだ一覧があれば、それを使って順位を出す
           var c=readCache();
           if(c&&Date.now()-c.at<FRESH){
@@ -2020,13 +2067,14 @@ window.SWIMRANK=(function(){
           if(!r)return;
           if(!r.ok)throw new Error(r.status);
           return r.json().then(function(j){
+            if(j.nextPageToken){ show("🏆 記録を保存しました<small>全順位はランキングで確認</small>",link); return; }
             var rows=toRows(j);
             writeCache(rows);
             tell(placeOf(rows,n,d,t),link);
           });
         })
         .catch(function(){
-          show("🏆 記録を送りました<small>タップでみんなのランキングを見る</small>",link);
+          show(saved ? "🏆 記録は保存済みです<small>順位は接続が戻ってから確認できます</small>" : "📶 全体ランキングへ送信できませんでした<small>タイムはレース結果で確認できます</small>",link);
         });
     }catch(e){}
   }

@@ -258,6 +258,11 @@
     .row { margin: 8px 0; }
   }
 </style>
+<style>
+button{min-height:48px!important;touch-action:manipulation}
+input[type="text"]{min-height:48px;font-size:16px}
+@media(max-width:360px){#titlePanel h1{font-size:23px;line-height:1.2}.opt{padding-left:6px;padding-right:6px}}
+</style>
 </head>
 <body>
 <canvas id="game" aria-label="超・バタフライ タイムアタック"></canvas>
@@ -325,6 +330,7 @@
   </div>
 </div>
 
+<script src="../swimmer-v2.js?v=20261106"></script>
 <script>
 (() => {
 "use strict";
@@ -512,7 +518,9 @@ function bestKey() { return `${KEY_PREFIX}:best:${raceDistance}`; }
 function rankKey() { return `${KEY_PREFIX}:rank:${raceDistance}`; }
 
 function resetRace() {
+  const rankBar=document.getElementById("srBar");if(rankBar)rankBar.classList.remove("on");
   clearTimers();
+  game.wallQueued=false; game.finishQueued=false; game.visualTurnAt=0;
   Object.assign(game, {
     dist: 0, leg: 1, vel: 0, startAt: 0, signalAt: 0, rt: 0,
     final: 0, split50: 0, stamina: 100, oxygen: 100, surfaced: false, dove: false,
@@ -733,6 +741,8 @@ function pairedHands(diffMs) {
   splash(0, score > .72 ? 34 : 18, score > .72 ? 1.25 : .7);
 }
 function turn(diffMs) {
+  if(distInLeg()<POOL-.02){game.wallQueued=true;game.queuedDiff=diffMs;setMsg("両手タッチ準備",500,"#7ee8ff");return;}
+  game.wallQueued=false; game.visualTurnAt=performance.now();
   const wall = distInLeg();
   const sync = syncOf(diffMs);
   let acc = .8, label = "遠いターン";
@@ -755,6 +765,8 @@ function turn(diffMs) {
   tone(acc > 1 ? 880 : 560, .13, "sine", .16);
 }
 function finish(diffMs) {
+  if(game.dist<raceDistance-.001){game.finishQueued=true;game.finishDiff=diffMs;setMsg("両手を伸ばしてゴール！",500,"#ffd45b");return;}
+  game.finishQueued=false;
   const sync = syncOf(diffMs);
   if (sync <= .12) { disqualify("turn"); return; }
   game.dist = raceDistance;
@@ -911,6 +923,8 @@ function update(now) {
     if (!underwater && game.surfaced) game.vel = Math.max(game.vel, MIN_SWIM);
     game.stamina = Math.min(100, game.stamina + 2.0 * dt);
     game.dist += game.vel * dt;
+    if(game.wallQueued && distInLeg()>=POOL-.02)turn(game.queuedDiff);
+    if(game.finishQueued && game.dist>=raceDistance){finish(game.finishDiff);return;}
     if (underwater) game.oxygen = Math.max(0, game.oxygen - 8.5 * dt);
     else {
       game.oxygen = Math.max(0, game.oxygen - 2.1 * dt);
@@ -994,6 +1008,14 @@ function drawPool(l, now) {
 }
 function drawSwimmer(now) {
   if (!(state === STATE.SWIM || state === STATE.FINISH)) return;
+  if(window.SwimBody) {
+    ctx.save(); ctx.translate(W/2,swimmerY()); if(game.leg%2===0)ctx.rotate(Math.PI);
+    SwimBody.draw(ctx,{stroke:'fly',size:Math.min(3,Math.max(2.1,W/150)),now,
+      phase:game.lastStrokeAt?Math.min(1,(now-game.lastStrokeAt)/700):1,
+      underwater:inUnderwater(),breathing:!inUnderwater()&&now-game.breathAt<420,
+      speed:game.vel,turn:game.visualTurnAt?(now-game.visualTurnAt)/360:0,finish:state===STATE.FINISH});
+    ctx.restore(); return;
+  }
   const y = swimmerY();
   const u = Math.max(2.1, Math.min(3.4, W / 118));
   const dir = game.leg % 2 ? 0 : Math.PI;
@@ -1400,12 +1422,12 @@ window.SWIMRANK=(function(){
   function readCache(){
     try{
       var c=JSON.parse(localStorage.getItem(CACHE)||"null");
-      if(c&&Array.isArray(c.rows))return c;
+      if(c&&c.complete===true&&Array.isArray(c.rows))return c;
     }catch(e){}
     return null;
   }
   function writeCache(rows){
-    try{ localStorage.setItem(CACHE,JSON.stringify({at:Date.now(),rows:rows})); }catch(e){}
+    try{ localStorage.setItem(CACHE,JSON.stringify({at:Date.now(),rows:rows,complete:true})); }catch(e){}
   }
   function toRows(j){
     return ((j&&j.documents)||[]).map(function(doc){
@@ -1417,7 +1439,7 @@ window.SWIMRANK=(function(){
   }
   function placeOf(rows,n,d,t){
     var list=rows.filter(function(r){return r.e===EV&&r.d===d;}).concat([{n:n,e:EV,d:d,t:t}]);
-    var map={};
+    var map=Object.create(null);
     list.forEach(function(r){var k=r.n.toLowerCase();if(!map[k]||r.t<map[k].t)map[k]=r;});
     var arr=Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return a.t-b.t;});
     var pos=0;
@@ -1438,7 +1460,8 @@ window.SWIMRANK=(function(){
       var n=String(name||"").trim().slice(0,12)||"ゲスト";
       try{localStorage.setItem("swimrank:name",n);}catch(e){}
       var link=RANK_URL+"#"+EV+d;
-      show("🏆 ランキングに送信中…","javascript:void(0)");
+      var saved = false;
+      show("🏆 ランキングに送信中…","#");
       fetch(API+"?key="+APIKEY,{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({fields:{
           n:{stringValue:n},e:{stringValue:EV},
@@ -1446,6 +1469,7 @@ window.SWIMRANK=(function(){
           ts:{integerValue:String(Date.now())}}})})
         .then(function(r){
           if(!r.ok)throw new Error(r.status);
+          saved = true;
           // 無料枠を節約: 90秒以内に読み込んだ一覧があれば、それを使って順位を出す
           var c=readCache();
           if(c&&Date.now()-c.at<FRESH){
@@ -1460,13 +1484,14 @@ window.SWIMRANK=(function(){
           if(!r)return;
           if(!r.ok)throw new Error(r.status);
           return r.json().then(function(j){
+            if(j.nextPageToken){ show("🏆 記録を保存しました<small>全順位はランキングで確認</small>",link); return; }
             var rows=toRows(j);
             writeCache(rows);
             tell(placeOf(rows,n,d,t),link);
           });
         })
         .catch(function(){
-          show("🏆 記録を送りました<small>タップでみんなのランキングを見る</small>",link);
+          show(saved ? "🏆 記録は保存済みです<small>順位は接続が戻ってから確認できます</small>" : "📶 全体ランキングへ送信できませんでした<small>タイムはレース結果で確認できます</small>",link);
         });
     }catch(e){}
   }

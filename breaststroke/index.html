@@ -534,6 +534,11 @@
     }
   }
 </style>
+<style>
+button{min-height:48px!important;touch-action:manipulation}
+input[type="text"]{min-height:48px;font-size:16px}
+@media(max-width:360px){#titlePanel h1{font-size:23px;line-height:1.2}.opt{padding-left:6px;padding-right:6px}}
+</style>
 </head>
 <body>
 <canvas id="game" aria-label="超・平泳ぎ タイムアタック レース画面"></canvas>
@@ -635,6 +640,7 @@
   </div>
 </section>
 
+<script src="../swimmer-v2.js?v=20261106"></script>
 <script>
 (() => {
   "use strict";
@@ -1065,6 +1071,7 @@
     const other = side === "L" ? "R" : "L";
 
     if (Math.abs(race.lastSide[other] - t) <= SYNC_WINDOW) {
+      race.lastSide.L = race.lastSide.R = -10000;
       handleTwoHandInput();
       return;
     }
@@ -1254,8 +1261,8 @@
 
     if (gap < 0.55) {
       race.metrics.kickBad += 1;
-      race.v = clamp(race.v + 0.08, 0.45, 5.0);
-      race.stamina = clamp(race.stamina - 7, 0, 100);
+      race.v = clamp(race.v + 0.28, 0.65, 5.0);
+      race.stamina = clamp(race.stamina - 4, 0, 100);
       setFeedback("キック連打注意", "#ffd166", 560);
       tone(260, 0.075, "triangle", 0.058);
     } else if (gap <= 1.55) {
@@ -1296,6 +1303,8 @@
   };
 
   const twoHandTouch = () => {
+    if(distanceToWall()>.02){state.race.wallQueued=true;setFeedback("両手タッチ準備！", "#ffd166",500);return;}
+    state.race.wallQueued=false;
     const race = state.race;
     const remaining = distanceToWall();
     const wall = race.nextWall;
@@ -1408,13 +1417,16 @@
     leftBtn.classList.toggle("ready", wall);
     rightBtn.classList.toggle("ready", wall);
     actionBtn.classList.toggle("ready", race.phase === "underwater" && race.underwater.kick && underwaterDistance() >= 5.8);
+    const handLabel = wall ? '両手タッチ' : race.phase==='underwater' ? 'ひとかき' : race.cycle==='kick' ? '次は中央キック' : race.cycle==='glide' ? '伸びてからプル' : '両手プル';
+    leftBtn.innerHTML=handLabel+'<small>左手・左右同時</small>';
+    rightBtn.innerHTML=handLabel+'<small>右手・左右同時</small>';
 
     if (race.phase === "underwater") {
-      actionBtn.innerHTML = race.underwater.kick ? "浮上<small>Space / 中央</small>" : "キック<small>ひとけり</small>";
+      actionBtn.innerHTML = race.underwater.kick ? "浮上<small>ここをタップ</small>" : race.underwater.pull ? "キック<small>ひとけり</small>" : race.underwater.dolphin ? "先に両手ひとかき<small>左右同時タップ</small>" : "ドルフィン<small>1回だけ</small>";
     } else if (wall) {
       actionBtn.innerHTML = "壁前<small>左右同時タッチ</small>";
     } else {
-      actionBtn.innerHTML = "キック<small>Space / 中央</small>";
+      actionBtn.innerHTML = race.cycle === 'kick' ? "キック！<small>ここをタップ</small>" : race.cycle === 'glide' ? "伸びよう<small>少し待つと加速</small>" : "先に両手プル<small>左右同時タップ</small>";
     }
   };
 
@@ -1441,8 +1453,9 @@
     if (race.oxygen <= 4) race.v -= 0.46 * dt;
     if (race.stamina <= 8) race.v -= 0.35 * dt;
 
-    race.v = clamp(race.v, underwater ? 0.7 : 0.3, 2.02);
+    race.v = clamp(race.v, underwater ? 0.7 : 0.65, 2.02);
     race.x += race.v * dt;
+    if(race.wallQueued && distanceToWall()<=.02){twoHandTouch();if(state.mode!=='race')return;}
     race.metrics.maxSpeed = Math.max(race.metrics.maxSpeed, race.v);
 
     if (underwater && underwaterDistance() > UNDERWATER_LIMIT) {
@@ -1607,6 +1620,19 @@
 
   // 縦向きスイマー(頭が上=進行方向)。平泳ぎのプル(腕を左右へ掻く)とあおり足を表現
   const drawSwimmer = (t) => {
+    if(window.SwimBody){
+      const r=state.race, p=swimmerPoint(), leg=legInfo();
+      let ph=1;
+      if(r){
+        if(r.cycle==='kick')ph=Math.min(.45, Math.max(0,(now()-r.lastPullAt)/900));
+        else if(r.kickAt)ph=.45+.55*Math.min(1,(now()-r.kickAt)/720);
+      }
+      ctx.save();ctx.translate(p.x,p.y);if(!leg.odd)ctx.rotate(Math.PI);
+      SwimBody.draw(ctx,{stroke:'breast',size:Math.min(2.2,state.w/155),now:t,phase:ph,
+        underwater:r&&r.phase==='underwater',breathing:r&&r.cycle==='kick',speed:r?r.v:0,
+        finish:state.mode==='result'});
+      ctx.restore();return;
+    }
     const race = state.race;
     const point = swimmerPoint();
     const phase = race ? race.phase : "surface";
@@ -1936,12 +1962,12 @@ window.SWIMRANK=(function(){
   function readCache(){
     try{
       var c=JSON.parse(localStorage.getItem(CACHE)||"null");
-      if(c&&Array.isArray(c.rows))return c;
+      if(c&&c.complete===true&&Array.isArray(c.rows))return c;
     }catch(e){}
     return null;
   }
   function writeCache(rows){
-    try{ localStorage.setItem(CACHE,JSON.stringify({at:Date.now(),rows:rows})); }catch(e){}
+    try{ localStorage.setItem(CACHE,JSON.stringify({at:Date.now(),rows:rows,complete:true})); }catch(e){}
   }
   function toRows(j){
     return ((j&&j.documents)||[]).map(function(doc){
@@ -1953,7 +1979,7 @@ window.SWIMRANK=(function(){
   }
   function placeOf(rows,n,d,t){
     var list=rows.filter(function(r){return r.e===EV&&r.d===d;}).concat([{n:n,e:EV,d:d,t:t}]);
-    var map={};
+    var map=Object.create(null);
     list.forEach(function(r){var k=r.n.toLowerCase();if(!map[k]||r.t<map[k].t)map[k]=r;});
     var arr=Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return a.t-b.t;});
     var pos=0;
@@ -1974,7 +2000,8 @@ window.SWIMRANK=(function(){
       var n=String(name||"").trim().slice(0,12)||"ゲスト";
       try{localStorage.setItem("swimrank:name",n);}catch(e){}
       var link=RANK_URL+"#"+EV+d;
-      show("🏆 ランキングに送信中…","javascript:void(0)");
+      var saved = false;
+      show("🏆 ランキングに送信中…","#");
       fetch(API+"?key="+APIKEY,{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({fields:{
           n:{stringValue:n},e:{stringValue:EV},
@@ -1982,6 +2009,7 @@ window.SWIMRANK=(function(){
           ts:{integerValue:String(Date.now())}}})})
         .then(function(r){
           if(!r.ok)throw new Error(r.status);
+          saved = true;
           // 無料枠を節約: 90秒以内に読み込んだ一覧があれば、それを使って順位を出す
           var c=readCache();
           if(c&&Date.now()-c.at<FRESH){
@@ -1996,13 +2024,14 @@ window.SWIMRANK=(function(){
           if(!r)return;
           if(!r.ok)throw new Error(r.status);
           return r.json().then(function(j){
+            if(j.nextPageToken){ show("🏆 記録を保存しました<small>全順位はランキングで確認</small>",link); return; }
             var rows=toRows(j);
             writeCache(rows);
             tell(placeOf(rows,n,d,t),link);
           });
         })
         .catch(function(){
-          show("🏆 記録を送りました<small>タップでみんなのランキングを見る</small>",link);
+          show(saved ? "🏆 記録は保存済みです<small>順位は接続が戻ってから確認できます</small>" : "📶 全体ランキングへ送信できませんでした<small>タイムはレース結果で確認できます</small>",link);
         });
     }catch(e){}
   }
